@@ -1,0 +1,22 @@
+# Configuration for running connectors in bundle with connector-runtime
+
+# Cloud connection
+# zeebe.client.cloud:
+#    region=bru-2
+#    clusterId=xxx
+#    clientId=xxx
+#    clientSecret=xxx
+
+
+# local connection
+camunda.client:
+  grpc-address: http://127.0.0.1:26500
+  rest-address: http://127.0.0.1:8080
+  mode: self-managed
+  auth.method: none
+
+# Don't run the connection to Operate (not an inbound connection)
+camunda.connector.polling.enabled: false
+camunda.connector.webhook.enabled: false
+spring.main.web-application-type: none
+operate.client.enabled: false

@@ -1,0 +1,222 @@
+package org.camunda.connector.identity.function.user;
+
+import io.camunda.client.CamundaClient;
+import io.camunda.client.api.search.response.GroupUser;
+import io.camunda.client.api.search.response.RoleUser;
+import io.camunda.client.api.search.response.User;
+import io.camunda.connector.api.error.ConnectorException;
+import io.camunda.connector.api.outbound.OutboundConnectorContext;
+import io.camunda.connector.cherrytemplate.RunnerParameter;
+import org.camunda.connector.identity.IdentityFunction;
+import org.camunda.connector.identity.IdentityInput;
+import org.camunda.connector.identity.IdentityOutput;
+import org.camunda.connector.identity.toolbox.IdentitySubFunction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+public class SearchUserFunction implements IdentitySubFunction {
+
+    public static final String ERROR_SEARCH_USER = "SEARCH_USER";
+    public static final String ERROR_SEARCH_USER_LABEL = "During search user(s) in Camunda 8 Identity";
+
+    private final Logger logger = LoggerFactory.getLogger(SearchUserFunction.class.getName());
+
+    @Override
+    public IdentityOutput executeSubFunction(CamundaClient camundaClient,
+                                             IdentityInput identityInput,
+                                             OutboundConnectorContext context) throws ConnectorException {
+        long markerTime = System.currentTimeMillis();
+
+        IdentityOutput identityOutput;
+
+        if (containsInformation(identityInput.getSearchByGroupId())) {
+            identityOutput = searchByGroup(camundaClient, identityInput);
+        } else if (containsInformation(identityInput.getSearchByRoleId())) {
+            identityOutput = searchByRole(camundaClient, identityInput);
+        } else {
+            identityOutput = searchByCriteria(camundaClient, identityInput);
+        }
+        identityOutput.status = "SUCCESS";
+        identityOutput.dateOperation = new Date();
+        logger.info(
+                "SearchUser searchByGroupId[{}] searchByRoleId[{}] searchByUserName[{}] searchByUserDisplayName[{}] searchByUserEmail[{}] listUsers[{}] status[SUCCESS] in {} ms",
+                identityInput.getSearchByGroupId(), identityInput.getSearchByRoleId(), identityInput.getSearchByUserName(),
+                identityInput.getSearchByUserDisplayName(), identityInput.getSearchByUserEmail(),
+                identityOutput.listUsers, System.currentTimeMillis() - markerTime);
+        return identityOutput;
+    }
+
+    /**
+     * Search all users assigned to a group
+     */
+    private IdentityOutput searchByGroup(CamundaClient camundaClient, IdentityInput identityInput)
+            throws ConnectorException {
+        String groupId = identityInput.getSearchByGroupId();
+        IdentityOutput identityOutput = new IdentityOutput();
+        try {
+            List<GroupUser> usersList = camundaClient.newUsersByGroupSearchRequest(groupId).execute().items();
+            identityOutput.listUsers = usersList;
+            if (!usersList.isEmpty()) {
+                identityOutput.userName = usersList.get(0).getUsername();
+                identityOutput.user = usersList.get(0);
+            }
+            logger.info("SearchByGroupId[{}] Found {} users", groupId, identityOutput.listUsers.size());
+            return identityOutput;
+        } catch (Exception e) {
+            logger.error("SearchByGroupId[{}] : {}", groupId, e);
+            throw new ConnectorException(ERROR_SEARCH_USER, "groupId[" + groupId + "] : " + e.getMessage());
+        }
+    }
+
+    /**
+     * Search all users assigned to a role
+     */
+    private IdentityOutput searchByRole(CamundaClient camundaClient, IdentityInput identityInput)
+            throws ConnectorException {
+        String roleId = identityInput.getSearchByRoleId();
+        IdentityOutput identityOutput = new IdentityOutput();
+        try {
+            List<RoleUser> usersList = camundaClient.newUsersByRoleSearchRequest(roleId).execute().items();
+            identityOutput.listUsers = usersList;
+            if (!usersList.isEmpty()) {
+                identityOutput.userName = usersList.get(0).getUsername();
+                identityOutput.user = usersList.get(0);
+            }
+            logger.info("Search ByRoleId[{}] Found {} users", roleId, identityOutput.listUsers.size());
+            return identityOutput;
+        } catch (Exception e) {
+            logger.error("SearchByRoleId[{}] : {}", roleId, e);
+            throw new ConnectorException(ERROR_SEARCH_USER, "roleId[" + roleId + "] : " + e.getMessage());
+        }
+    }
+
+    /**
+     * Search by username/name/email criteria
+     *
+     * @throws ConnectorException ERROR_SEARCH_USER
+     */
+    private IdentityOutput searchByCriteria(CamundaClient camundaClient, IdentityInput identityInput)
+            throws ConnectorException {
+        String userName = getSearchCriteria(identityInput.getSearchByUserName());
+        String name = getSearchCriteria(identityInput.getSearchByUserDisplayName());
+        String email = getSearchCriteria(identityInput.getSearchByUserEmail());
+        String searchUserSignature = "userName[" + userName + "] name[" + name + "] email[" + email + "]";
+        try {
+            IdentityOutput identityOutput = new IdentityOutput();
+            List<User> usersList = camundaClient.newUsersSearchRequest()
+                    .filter(f -> {
+                        if (containsInformation(userName))
+                            f.username(userName);
+                        if (containsInformation(name))
+                            f.name(name);
+                        if (containsInformation(email))
+                            f.email(email);
+                    })
+                    .execute()
+                    .items();
+
+            identityOutput.listUsers = usersList;
+            logger.info("Search by {} Found {} users", searchUserSignature, identityOutput.listUsers.size());
+            return identityOutput;
+        } catch (ConnectorException ce) {
+            throw ce;
+        } catch (Exception e) {
+            logger.error("Error during Search on {}: {}", searchUserSignature, e);
+            throw new ConnectorException(ERROR_SEARCH_USER, "Error during search-users " + e.getMessage());
+        }
+    }
+
+    @Override
+    public List<RunnerParameter> getInputsParameter() {
+        return Arrays.asList(RunnerParameter.getInstance(IdentityInput.INPUT_SEARCH_BY_USER_NAME, //
+                                "Search by User Name", //
+                                String.class, //
+                                "", //
+                                RunnerParameter.Level.OPTIONAL, //
+                                IdentityInput.INPUT_SEARCH_BY_USER_NAME_EXPLANATION)
+                        .setVisibleInTemplate(),//
+
+                RunnerParameter.getInstance(IdentityInput.INPUT_SEARCH_BY_USER_DISPLAY_NAME, //
+                                "Search by Name", //
+                                String.class, //
+                                "", //
+                                RunnerParameter.Level.OPTIONAL, //
+                                IdentityInput.INPUT_SEARCH_BY_USER_DISPLAY_NAME_EXPLANATION)
+                        .setVisibleInTemplate(),//
+
+                RunnerParameter.getInstance(IdentityInput.INPUT_SEARCH_BY_USER_EMAIL, //
+                                "Search by Email", //
+                                String.class, //
+                                "", //
+                                RunnerParameter.Level.OPTIONAL, //
+                                IdentityInput.INPUT_SEARCH_BY_USER_EMAIL_EXPLANATION)
+                        .setVisibleInTemplate(),//
+
+                RunnerParameter.getInstance(IdentityInput.INPUT_SEARCH_BY_GROUP_ID, //
+                                "Search by Group Id", //
+                                String.class, //
+                                "", //
+                                RunnerParameter.Level.OPTIONAL, //
+                                IdentityInput.INPUT_SEARCH_BY_GROUP_ID_EXPLANATION)
+                        .setVisibleInTemplate(),//
+
+                RunnerParameter.getInstance(IdentityInput.INPUT_SEARCH_BY_ROLE_ID, //
+                                "Search by Role Id", //
+                                String.class, //
+                                "", //
+                                RunnerParameter.Level.OPTIONAL, //
+                                IdentityInput.INPUT_SEARCH_BY_ROLE_ID_EXPLANATION)
+                        .setVisibleInTemplate()
+        );//
+
+    }
+
+    @Override
+    public List<RunnerParameter> getOutputsParameter() {
+        return List.of(RunnerParameter.getInstance(IdentityOutput.OUTPUT_LIST_USERS, //
+                "List Users", //
+                String.class, //
+                "", //
+                RunnerParameter.Level.OPTIONAL, //
+                IdentityOutput.OUTPUT_LIST_USERS_EXPLANATION) //
+        );
+
+    }
+
+    @Override
+    public Map<String, String> getSubFunctionListBpmnErrors() {
+        return Map.of(IdentityFunction.ERROR_IDENTITY_CONNECTION, IdentityFunction.ERROR_IDENTITY_CONNECTION_LABEL, //
+                IdentityFunction.ERROR_UNKNOWN_FUNCTION, IdentityFunction.ERROR_UNKNOWN_FUNCTION_LABEL, //
+                ERROR_SEARCH_USER, ERROR_SEARCH_USER_LABEL); //
+    }
+
+    @Override
+    public String getSubFunctionName() {
+        return "searchUser";
+    }
+
+    @Override
+    public String getSubFunctionDescription() {
+        return "Search users in Camunda 8 Identity by username/name/email, or by groupId, or by roleId";
+    }
+
+    @Override
+    public String getSubFunctionType() {
+        return "search-users";
+    }
+
+    private boolean containsInformation(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
+
+    private String getSearchCriteria(String criteriaContent) {
+        if (!containsInformation(criteriaContent))
+            return null;
+        return criteriaContent;
+    }
+}
