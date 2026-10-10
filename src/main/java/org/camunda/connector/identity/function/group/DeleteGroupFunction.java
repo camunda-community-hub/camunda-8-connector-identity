@@ -30,15 +30,17 @@ public class DeleteGroupFunction implements IdentitySubFunction {
         long markerTime = System.currentTimeMillis();
         String groupId = identityInput.getGroupId();
         boolean ignoreIfAlreadyDone = Boolean.TRUE.equals(identityInput.getIgnoreIfAlreadyDone());
+        logger.info("--- DeleteGroup : START GroupId[{}] ignoreIfAlreadyDone[{}]", groupId, ignoreIfAlreadyDone);
         try {
+
             camundaClient.newDeleteGroupCommand(groupId).execute();
 
             IdentityOutput identityOutput = new IdentityOutput();
-            identityOutput.groupId = groupId;
-            identityOutput.status = "SUCCESS";
+            identityOutput.status = IdentityOutput.STATUS_SUCCESS;
             identityOutput.dateOperation = new Date();
-            logger.info("DeleteGroup GroupId[{}] status[SUCCESS] in {} ms",
+            logger.info("--- DeleteGroup : END GroupId[{}] status[{}] in {} ms",
                     groupId,
+                    identityOutput.status,
                     System.currentTimeMillis() - markerTime);
             return identityOutput;
         } catch (ConnectorException ce) {
@@ -46,14 +48,14 @@ public class DeleteGroupFunction implements IdentitySubFunction {
         } catch (Exception e) {
             if (IdentityFunction.isAlreadyDoneError(e) && ignoreIfAlreadyDone) {
                 IdentityOutput identityOutput = new IdentityOutput();
-                identityOutput.groupId = groupId;
-                identityOutput.status = "ALREADY_DELETED";
+                identityOutput.status = IdentityOutput.STATUS_ALREADY_DELETED;
                 identityOutput.dateOperation = new Date();
-                logger.info("DeleteGroup GroupId[{}] already deleted, ignored in {} ms", groupId,
+                logger.info("--- DeleteGroup : END GroupId[{}] already deleted, ignored, status[{}] in {} ms", groupId,
+                        identityOutput.status,
                         System.currentTimeMillis() - markerTime);
                 return identityOutput;
             }
-            logger.error("Error during DeleteGroup groupId[{}] : {}", groupId, e.getMessage());
+            logger.error("--- DeleteGroup : ERROR GroupId[{}] : {}", groupId, e.getMessage());
             throw new ConnectorException(ERROR_DELETE_GROUP, "During delete group[" + groupId + "] : " + e.getMessage());
         }
     }
@@ -96,7 +98,7 @@ public class DeleteGroupFunction implements IdentitySubFunction {
 
     @Override
     public String getSubFunctionName() {
-        return "DeleteGroup";
+        return "Delete group";
     }
 
     @Override

@@ -3,7 +3,6 @@ package org.camunda.connector.identity.function.user;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.search.response.GroupUser;
 import io.camunda.client.api.search.response.RoleUser;
-import io.camunda.client.api.search.response.User;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.cherrytemplate.RunnerParameter;
@@ -14,10 +13,7 @@ import org.camunda.connector.identity.toolbox.IdentitySubFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class SearchUserFunction implements IdentitySubFunction {
 
@@ -32,6 +28,11 @@ public class SearchUserFunction implements IdentitySubFunction {
                                              OutboundConnectorContext context) throws ConnectorException {
         long markerTime = System.currentTimeMillis();
 
+        logger.info(
+                "--- searchUser : START searchByGroupId[{}] searchByRoleId[{}] searchByUserName[{}] searchByUserDisplayName[{}] searchByUserEmail[{}]",
+                identityInput.getSearchByGroupId(), identityInput.getSearchByRoleId(), identityInput.getSearchByUserName(),
+                identityInput.getSearchByUserDisplayName(), identityInput.getSearchByUserEmail());
+
         IdentityOutput identityOutput;
 
         if (containsInformation(identityInput.getSearchByGroupId())) {
@@ -41,13 +42,13 @@ public class SearchUserFunction implements IdentitySubFunction {
         } else {
             identityOutput = searchByCriteria(camundaClient, identityInput);
         }
-        identityOutput.status = "SUCCESS";
+        identityOutput.status = IdentityOutput.STATUS_SUCCESS;
         identityOutput.dateOperation = new Date();
         logger.info(
-                "SearchUser searchByGroupId[{}] searchByRoleId[{}] searchByUserName[{}] searchByUserDisplayName[{}] searchByUserEmail[{}] listUsers[{}] status[SUCCESS] in {} ms",
+                "--- searchUser : END searchByGroupId[{}] searchByRoleId[{}] searchByUserName[{}] searchByUserDisplayName[{}] searchByUserEmail[{}] listUsers[{}] status[{}] in {} ms",
                 identityInput.getSearchByGroupId(), identityInput.getSearchByRoleId(), identityInput.getSearchByUserName(),
                 identityInput.getSearchByUserDisplayName(), identityInput.getSearchByUserEmail(),
-                identityOutput.listUsers, System.currentTimeMillis() - markerTime);
+                identityOutput.listUsers, identityOutput.status, System.currentTimeMillis() - markerTime);
         return identityOutput;
     }
 
@@ -59,16 +60,17 @@ public class SearchUserFunction implements IdentitySubFunction {
         String groupId = identityInput.getSearchByGroupId();
         IdentityOutput identityOutput = new IdentityOutput();
         try {
-            List<GroupUser> usersList = camundaClient.newUsersByGroupSearchRequest(groupId).execute().items();
-            identityOutput.listUsers = usersList;
-            if (!usersList.isEmpty()) {
-                identityOutput.userName = usersList.get(0).getUsername();
-                identityOutput.user = usersList.get(0);
+            List<GroupUser> groupsList = camundaClient.newUsersByGroupSearchRequest(groupId).execute().items();
+            identityOutput.listUsers = new ArrayList<>();
+            for (GroupUser groupUser : groupsList) {
+                identityOutput.listUsers.addAll(camundaClient.newUsersSearchRequest()
+                        .filter(f -> f.username(groupUser.getUsername()))
+                        .execute().items());
             }
             logger.info("SearchByGroupId[{}] Found {} users", groupId, identityOutput.listUsers.size());
             return identityOutput;
         } catch (Exception e) {
-            logger.error("SearchByGroupId[{}] : {}", groupId, e);
+            logger.error("--- searchUser : ERROR groupId[{}] : {}", groupId, e.getMessage());
             throw new ConnectorException(ERROR_SEARCH_USER, "groupId[" + groupId + "] : " + e.getMessage());
         }
     }
@@ -81,16 +83,17 @@ public class SearchUserFunction implements IdentitySubFunction {
         String roleId = identityInput.getSearchByRoleId();
         IdentityOutput identityOutput = new IdentityOutput();
         try {
-            List<RoleUser> usersList = camundaClient.newUsersByRoleSearchRequest(roleId).execute().items();
-            identityOutput.listUsers = usersList;
-            if (!usersList.isEmpty()) {
-                identityOutput.userName = usersList.get(0).getUsername();
-                identityOutput.user = usersList.get(0);
+            List<RoleUser> roleUsersList = camundaClient.newUsersByRoleSearchRequest(roleId).execute().items();
+            identityOutput.listUsers = new ArrayList<>();
+            for (RoleUser roleUsers : roleUsersList) {
+                identityOutput.listUsers.addAll(camundaClient.newUsersSearchRequest()
+                        .filter(f -> f.username(roleUsers.getUsername()))
+                        .execute().items());
             }
             logger.info("Search ByRoleId[{}] Found {} users", roleId, identityOutput.listUsers.size());
             return identityOutput;
         } catch (Exception e) {
-            logger.error("SearchByRoleId[{}] : {}", roleId, e);
+            logger.error("--- searchUser : ERROR roleId[{}] : {}", roleId, e.getMessage());
             throw new ConnectorException(ERROR_SEARCH_USER, "roleId[" + roleId + "] : " + e.getMessage());
         }
     }
@@ -108,25 +111,24 @@ public class SearchUserFunction implements IdentitySubFunction {
         String searchUserSignature = "userName[" + userName + "] name[" + name + "] email[" + email + "]";
         try {
             IdentityOutput identityOutput = new IdentityOutput();
-            List<User> usersList = camundaClient.newUsersSearchRequest()
+            identityOutput.listUsers = camundaClient.newUsersSearchRequest()
                     .filter(f -> {
                         if (containsInformation(userName))
-                            f.username(userName);
+                            f.username(u -> u.like(userName));
                         if (containsInformation(name))
-                            f.name(name);
+                            f.name(n -> n.like(name));
                         if (containsInformation(email))
-                            f.email(email);
+                            f.email(e -> e.like(email));
                     })
                     .execute()
                     .items();
 
-            identityOutput.listUsers = usersList;
             logger.info("Search by {} Found {} users", searchUserSignature, identityOutput.listUsers.size());
             return identityOutput;
         } catch (ConnectorException ce) {
             throw ce;
         } catch (Exception e) {
-            logger.error("Error during Search on {}: {}", searchUserSignature, e);
+            logger.error("--- searchUser : ERROR {} : {}", searchUserSignature, e.getMessage());
             throw new ConnectorException(ERROR_SEARCH_USER, "Error during search-users " + e.getMessage());
         }
     }
@@ -178,13 +180,26 @@ public class SearchUserFunction implements IdentitySubFunction {
 
     @Override
     public List<RunnerParameter> getOutputsParameter() {
-        return List.of(RunnerParameter.getInstance(IdentityOutput.OUTPUT_LIST_USERS, //
-                "List Users", //
-                String.class, //
-                "", //
-                RunnerParameter.Level.OPTIONAL, //
-                IdentityOutput.OUTPUT_LIST_USERS_EXPLANATION) //
-        );
+        return Arrays.asList(RunnerParameter.getInstance(IdentityOutput.OUTPUT_STATUS, //
+                        "Status", //
+                        String.class, //
+                        "", //
+                        RunnerParameter.Level.OPTIONAL, //
+                        IdentityOutput.OUTPUT_STATUS_EXPLANATION), //
+
+                RunnerParameter.getInstance(IdentityOutput.OUTPUT_LIST_USERS, //
+                        "List Users", //
+                        List.class, //
+                        "", //
+                        RunnerParameter.Level.OPTIONAL, //
+                        IdentityOutput.OUTPUT_LIST_USERS_EXPLANATION), //
+
+                RunnerParameter.getInstance(IdentityOutput.OUTPUT_DATE_OPERATION, //
+                        "Date of operation", //
+                        Date.class, //
+                        null, //
+                        RunnerParameter.Level.OPTIONAL, //
+                        IdentityOutput.OUTPUT_DATE_OPERATION_EXPLANATION));
 
     }
 
@@ -197,7 +212,7 @@ public class SearchUserFunction implements IdentitySubFunction {
 
     @Override
     public String getSubFunctionName() {
-        return "searchUser";
+        return "Search user";
     }
 
     @Override

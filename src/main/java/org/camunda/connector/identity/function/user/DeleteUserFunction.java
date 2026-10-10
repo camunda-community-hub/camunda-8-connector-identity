@@ -30,14 +30,16 @@ public class DeleteUserFunction implements IdentitySubFunction {
         long markerTime = System.currentTimeMillis();
         String userName = identityInput.getUserName();
         boolean ignoreIfAlreadyDone = Boolean.TRUE.equals(identityInput.getIgnoreIfAlreadyDone());
+        logger.info("--- DeleteUser : START UserName[{}] ignoreIfAlreadyDone[{}]", userName, ignoreIfAlreadyDone);
         try {
             camundaClient.newDeleteUserCommand(userName).execute();
 
             IdentityOutput identityOutput = new IdentityOutput();
-            identityOutput.status = "SUCCESS";
+            identityOutput.status = IdentityOutput.STATUS_SUCCESS;
             identityOutput.dateOperation = new Date();
-            logger.info("DeleteUser UserName[{}] status[SUCCESS] in {} ms",
+            logger.info("--- DeleteUser : END UserName[{}] status[{}] in {} ms",
                     userName,
+                    identityOutput.status,
                     System.currentTimeMillis() - markerTime);
             return identityOutput;
         } catch (ConnectorException ce) {
@@ -45,14 +47,14 @@ public class DeleteUserFunction implements IdentitySubFunction {
         } catch (Exception e) {
             if (IdentityFunction.isAlreadyDoneError(e) && ignoreIfAlreadyDone) {
                 IdentityOutput identityOutput = new IdentityOutput();
-                identityOutput.status = "ALREADY_DELETED";
+                identityOutput.status = IdentityOutput.STATUS_ALREADY_DELETED;
                 identityOutput.dateOperation = new Date();
-                logger.info("DeleteUser UserName[{}] already deleted, ignored in {} ms", userName,
+                logger.info("--- DeleteUser : END UserName[{}] already deleted, ignored, status[{}] in {} ms", userName,
+                        identityOutput.status,
                         System.currentTimeMillis() - markerTime);
                 return identityOutput;
             }
-            logger.error("Error during deleteUser on {} userName[{}]: {}", identityInput.getUserSignature(),
-                    userName, e.getMessage());
+            logger.error("--- DeleteUser : ERROR UserName[{}] : {}", userName, e.getMessage());
             throw new ConnectorException(ERROR_DELETE_USER, "During delete user[" + userName + "] : " + e.getMessage());
         }
     }
@@ -96,7 +98,7 @@ public class DeleteUserFunction implements IdentitySubFunction {
 
     @Override
     public String getSubFunctionName() {
-        return "DeleteUser";
+        return "Delete user";
     }
 
     @Override

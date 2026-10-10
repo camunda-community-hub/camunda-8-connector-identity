@@ -12,7 +12,7 @@
     "name": "Connectors"
   },
   "appliesTo": [
-    "bpmn:ServiceTask"
+    "bpmn:Task"
   ],
   "elementType": {
     "value": "bpmn:ServiceTask"
@@ -50,60 +50,84 @@
       "type": "Dropdown",
       "choices": [
         {
-          "name": "createUser",
+          "name": "Create user",
           "value": "create-user"
         },
         {
-          "name": "DeleteUser",
+          "name": "Delete user",
           "value": "delete-user"
         },
         {
-          "name": "searchUser",
+          "name": "Search user",
           "value": "search-users"
         },
         {
-          "name": "updateUser",
+          "name": "Update user",
           "value": "update-user"
         },
         {
-          "name": "CreateGroup",
+          "name": "Create group",
           "value": "create-group"
         },
         {
-          "name": "AddInGroup",
+          "name": "Search group",
+          "value": "search-group"
+        },
+        {
+          "name": "Update group",
+          "value": "update-group"
+        },
+        {
+          "name": "Add in group",
           "value": "add-in-group"
         },
         {
-          "name": "SearchInGroup",
-          "value": "search-in-group"
+          "name": "Get content group",
+          "value": "get-content-group"
         },
         {
-          "name": "DeleteInGroup",
+          "name": "Delete in group",
           "value": "delete-in-group"
         },
         {
-          "name": "DeleteGroup",
+          "name": "Delete group",
           "value": "delete-group"
         },
         {
-          "name": "CreateRole",
+          "name": "Create role",
           "value": "create-role"
         },
         {
-          "name": "AddInRole",
+          "name": "Search role",
+          "value": "search-role"
+        },
+        {
+          "name": "Update role",
+          "value": "update-role"
+        },
+        {
+          "name": "Add in role",
           "value": "add-in-role"
         },
         {
-          "name": "SearchInRole",
-          "value": "search-in-role"
+          "name": "Get content role",
+          "value": "get-content-role"
         },
         {
-          "name": "DeleteInRole",
+          "name": "Delete in role",
           "value": "delete-in-role"
         },
         {
-          "name": "DeleteRole",
+          "name": "Delete role",
           "value": "delete-role"
+        },
+        {
+          "name": "Assign client",
+          "value": "assign-client"
+        },
+        {
+          "name": "Unassign client",
+          "value": "unassign-client"
         }
       ],
       "binding": {
@@ -208,7 +232,7 @@
       },
       "id": "searchByUserName",
       "label": "Search by User Name",
-      "description": "Search by the username",
+      "description": "Search by the username (like-match): use * for zero/one/multiple characters and ? for a single character, e.g. \"*bates\" matches \"walter.bates\". Without a wildcard, only an exact match is returned. The *, ? wildcard syntax is only valid on a Camunda 8.10 or later cluster - against an older broker (8.9 and before) it fails with a 400 error.",
       "value": "",
       "type": "String",
       "feel": "optional",
@@ -227,7 +251,7 @@
       },
       "id": "searchByUserDisplayName",
       "label": "Search by Name",
-      "description": "Search by the name of the user",
+      "description": "Search by the name of the user (like-match): use * for zero/one/multiple characters and ? for a single character, e.g. \"*Bates\" matches \"Walter Bates\". Without a wildcard, only an exact match is returned. The *, ? wildcard syntax is only valid on a Camunda 8.10 or later cluster - against an older broker (8.9 and before) it fails with a 400 error.",
       "value": "",
       "type": "String",
       "feel": "optional",
@@ -246,7 +270,7 @@
       },
       "id": "searchByUserEmail",
       "label": "Search by Email",
-      "description": "Search by Email of the user",
+      "description": "Search by Email of the user (like-match): use * for zero/one/multiple characters and ? for a single character. Without a wildcard, only an exact match is returned. The *, ? wildcard syntax is only valid on a Camunda 8.10 or later cluster - against an older broker (8.9 and before) it fails with a 400 error.",
       "value": "",
       "type": "String",
       "feel": "optional",
@@ -299,10 +323,13 @@
         "property": "identityFunction",
         "oneOf": [
           "create-group",
+          "update-group",
           "add-in-group",
-          "search-in-group",
+          "get-content-group",
           "delete-in-group",
-          "delete-group"
+          "delete-group",
+          "assign-client",
+          "unassign-client"
         ]
       },
       "id": "groupId",
@@ -324,7 +351,8 @@
       "condition": {
         "property": "identityFunction",
         "oneOf": [
-          "create-group"
+          "create-group",
+          "update-group"
         ]
       },
       "id": "groupName",
@@ -343,7 +371,8 @@
       "condition": {
         "property": "identityFunction",
         "oneOf": [
-          "create-group"
+          "create-group",
+          "update-group"
         ]
       },
       "id": "groupDescription",
@@ -355,6 +384,74 @@
       "binding": {
         "name": "groupDescription",
         "type": "zeebe:input"
+      },
+      "group": "Input"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
+          "search-group"
+        ]
+      },
+      "id": "groupNameSearch",
+      "label": "Group Name Filter",
+      "description": "Name to search (like-match): use * for zero/one/multiple characters and ? for a single character, e.g. \"super*\" matches \"supervisor\". Without a wildcard, only an exact match is returned. The *, ? wildcard syntax is only valid on a Camunda 8.10 or later cluster - against an older broker (8.9 and before) it fails with a 400 error.",
+      "value": "",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "name": "groupNameSearch",
+        "type": "zeebe:input"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "Input"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
+          "search-group",
+          "search-role"
+        ]
+      },
+      "id": "pageNumber",
+      "label": "Page number",
+      "description": "Page number to retrieve, starting at 1. Combined with pageSize to paginate search results.",
+      "value": "0",
+      "type": "Number",
+      "feel": "optional",
+      "binding": {
+        "name": "pageNumber",
+        "type": "zeebe:input"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "Input"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
+          "search-group",
+          "search-role"
+        ]
+      },
+      "id": "pageSize",
+      "label": "Page size",
+      "description": "Maximum number of results to return for one page.",
+      "value": "100",
+      "type": "Number",
+      "feel": "optional",
+      "binding": {
+        "name": "pageSize",
+        "type": "zeebe:input"
+      },
+      "constraints": {
+        "notEmpty": true
       },
       "group": "Input"
     },
@@ -385,7 +482,7 @@
       "condition": {
         "property": "identityFunction",
         "oneOf": [
-          "search-in-group"
+          "get-content-group"
         ]
       },
       "id": "groupContentFilter",
@@ -408,10 +505,13 @@
         "property": "identityFunction",
         "oneOf": [
           "create-role",
+          "update-role",
           "add-in-role",
-          "search-in-role",
+          "get-content-role",
           "delete-in-role",
-          "delete-role"
+          "delete-role",
+          "assign-client",
+          "unassign-client"
         ]
       },
       "id": "roleId",
@@ -433,7 +533,8 @@
       "condition": {
         "property": "identityFunction",
         "oneOf": [
-          "create-role"
+          "create-role",
+          "update-role"
         ]
       },
       "id": "roleName_optional",
@@ -478,7 +579,8 @@
       "condition": {
         "property": "identityFunction",
         "oneOf": [
-          "create-role"
+          "create-role",
+          "update-role"
         ]
       },
       "id": "roleDescription_optional",
@@ -523,6 +625,28 @@
       "condition": {
         "property": "identityFunction",
         "oneOf": [
+          "search-role"
+        ]
+      },
+      "id": "roleNameSearch",
+      "label": "Role Name filter",
+      "description": "Name to search (like-match): use * for zero/one/multiple characters and ? for a single character, e.g. \"super*\" matches \"supervisor\". Without a wildcard, only an exact match is returned. The *, ? wildcard syntax is only valid on a Camunda 8.10 or later cluster - against an older broker (8.9 and before) it fails with a 400 error.",
+      "value": "",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "name": "roleNameSearch",
+        "type": "zeebe:input"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "Input"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
           "add-in-role",
           "delete-in-role"
         ]
@@ -546,7 +670,7 @@
       "condition": {
         "property": "identityFunction",
         "oneOf": [
-          "search-in-role"
+          "get-content-role"
         ]
       },
       "id": "roleContentFilter",
@@ -568,6 +692,75 @@
       "condition": {
         "property": "identityFunction",
         "oneOf": [
+          "assign-client",
+          "unassign-client"
+        ]
+      },
+      "id": "clientId",
+      "label": "Client Id",
+      "description": "The client id, as registered in the identity provider",
+      "value": "",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "name": "clientId",
+        "type": "zeebe:input"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "Input"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
+          "assign-client",
+          "unassign-client"
+        ]
+      },
+      "id": "tenantId_optional",
+      "label": "Provide Tenant Id?",
+      "description": "The tenant id, unique in Camunda 8 Identity",
+      "value": "false",
+      "binding": {
+        "name": "tenantId_optional",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Yes",
+          "value": "true"
+        },
+        {
+          "name": "No",
+          "value": "false"
+        }
+      ],
+      "group": "Input"
+    },
+    {
+      "condition": {
+        "property": "tenantId_optional",
+        "equals": "true"
+      },
+      "id": "tenantId",
+      "label": "Tenant Id",
+      "description": "The tenant id, unique in Camunda 8 Identity",
+      "value": "",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "name": "tenantId",
+        "type": "zeebe:input"
+      },
+      "group": "Input"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
           "create-user",
           "delete-user",
           "create-group",
@@ -577,7 +770,9 @@
           "create-role",
           "add-in-role",
           "delete-in-role",
-          "delete-role"
+          "delete-role",
+          "assign-client",
+          "unassign-client"
         ]
       },
       "id": "ignoreIfAlreadyDone",
@@ -605,22 +800,6 @@
       "group": "Input"
     },
     {
-      "condition": {
-        "property": "identityFunction",
-        "oneOf": [
-          "create-user",
-          "delete-user",
-          "update-user",
-          "create-group",
-          "add-in-group",
-          "delete-in-group",
-          "delete-group",
-          "create-role",
-          "add-in-role",
-          "delete-in-role",
-          "delete-role"
-        ]
-      },
       "id": "status_optional",
       "label": "Saved Status?",
       "description": "Status of operation",
@@ -666,15 +845,16 @@
       "condition": {
         "property": "identityFunction",
         "oneOf": [
-          "create-user"
+          "create-user",
+          "update-user"
         ]
       },
-      "id": "userName_optional",
-      "label": "Saved User Name?",
-      "description": "Username of the user created (or updated). Camunda 8 Identity identifies a user by its username, there is no separate userId",
+      "id": "user_optional",
+      "label": "Saved User?",
+      "description": "The user created/updated (raw Camunda 8 client object, not a map)",
       "value": "false",
       "binding": {
-        "name": "userName_optional",
+        "name": "user_optional",
         "type": "zeebe:input"
       },
       "type": "Dropdown",
@@ -692,17 +872,17 @@
     },
     {
       "condition": {
-        "property": "userName_optional",
+        "property": "user_optional",
         "equals": "true"
       },
-      "id": "userName",
-      "label": "User Name",
-      "description": "Username of the user created (or updated). Camunda 8 Identity identifies a user by its username, there is no separate userId",
+      "id": "user",
+      "label": "User",
+      "description": "The user created/updated (raw Camunda 8 client object, not a map)",
       "value": "",
       "type": "String",
       "feel": "optional",
       "binding": {
-        "source": "\u003d result.userName",
+        "source": "\u003d result.user",
         "type": "zeebe:output"
       },
       "constraints": {
@@ -716,13 +896,18 @@
         "oneOf": [
           "create-user",
           "delete-user",
+          "search-users",
           "update-user",
           "create-group",
+          "update-group",
           "add-in-group",
+          "get-content-group",
           "delete-in-group",
           "delete-group",
           "create-role",
+          "update-role",
           "add-in-role",
+          "get-content-role",
           "delete-in-role",
           "delete-role"
         ]
@@ -772,8 +957,8 @@
         "property": "identityFunction",
         "oneOf": [
           "search-users",
-          "search-in-group",
-          "search-in-role"
+          "get-content-group",
+          "get-content-role"
         ]
       },
       "id": "listUsers_optional",
@@ -821,15 +1006,19 @@
       "condition": {
         "property": "identityFunction",
         "oneOf": [
-          "create-group"
+          "create-group",
+          "update-group",
+          "add-in-group",
+          "get-content-group",
+          "delete-in-group"
         ]
       },
-      "id": "groupId_optional",
-      "label": "Saved Group Id?",
-      "description": "Id of the group created/updated/deleted",
+      "id": "group_optional",
+      "label": "Saved Group?",
+      "description": "The group created/updated (raw Camunda 8 client object, not a map)",
       "value": "false",
       "binding": {
-        "name": "groupId_optional",
+        "name": "group_optional",
         "type": "zeebe:input"
       },
       "type": "Dropdown",
@@ -847,17 +1036,17 @@
     },
     {
       "condition": {
-        "property": "groupId_optional",
+        "property": "group_optional",
         "equals": "true"
       },
-      "id": "groupId",
-      "label": "Group Id",
-      "description": "Id of the group created/updated/deleted",
+      "id": "group",
+      "label": "Group",
+      "description": "The group created/updated (raw Camunda 8 client object, not a map)",
       "value": "",
       "type": "String",
       "feel": "optional",
       "binding": {
-        "source": "\u003d result.groupId",
+        "source": "\u003d result.group",
         "type": "zeebe:output"
       },
       "constraints": {
@@ -869,201 +1058,8 @@
       "condition": {
         "property": "identityFunction",
         "oneOf": [
-          "search-in-group"
-        ]
-      },
-      "id": "listRoles_optional",
-      "label": "Saved List Roles?",
-      "description": "List of roles assigned to the group",
-      "value": "false",
-      "binding": {
-        "name": "listRoles_optional",
-        "type": "zeebe:input"
-      },
-      "type": "Dropdown",
-      "choices": [
-        {
-          "name": "Yes",
-          "value": "true"
-        },
-        {
-          "name": "No",
-          "value": "false"
-        }
-      ],
-      "group": "Output"
-    },
-    {
-      "condition": {
-        "property": "listRoles_optional",
-        "equals": "true"
-      },
-      "id": "listRoles",
-      "label": "List Roles",
-      "description": "List of roles assigned to the group",
-      "value": "",
-      "type": "String",
-      "feel": "optional",
-      "binding": {
-        "source": "\u003d result.listRoles",
-        "type": "zeebe:output"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "group": "Output"
-    },
-    {
-      "condition": {
-        "property": "identityFunction",
-        "oneOf": [
-          "search-in-group",
-          "search-in-role"
-        ]
-      },
-      "id": "listMappingRules_optional",
-      "label": "Saved List Mapping Rules?",
-      "description": "List of mapping rules assigned to the group",
-      "value": "false",
-      "binding": {
-        "name": "listMappingRules_optional",
-        "type": "zeebe:input"
-      },
-      "type": "Dropdown",
-      "choices": [
-        {
-          "name": "Yes",
-          "value": "true"
-        },
-        {
-          "name": "No",
-          "value": "false"
-        }
-      ],
-      "group": "Output"
-    },
-    {
-      "condition": {
-        "property": "listMappingRules_optional",
-        "equals": "true"
-      },
-      "id": "listMappingRules",
-      "label": "List Mapping Rules",
-      "description": "List of mapping rules assigned to the group",
-      "value": "",
-      "type": "String",
-      "feel": "optional",
-      "binding": {
-        "source": "\u003d result.listMappingRules",
-        "type": "zeebe:output"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "group": "Output"
-    },
-    {
-      "condition": {
-        "property": "identityFunction",
-        "oneOf": [
-          "search-in-group",
-          "search-in-role"
-        ]
-      },
-      "id": "listClientId_optional",
-      "label": "Saved List Client Id?",
-      "description": "List of clients assigned to the group/role",
-      "value": "false",
-      "binding": {
-        "name": "listClientId_optional",
-        "type": "zeebe:input"
-      },
-      "type": "Dropdown",
-      "choices": [
-        {
-          "name": "Yes",
-          "value": "true"
-        },
-        {
-          "name": "No",
-          "value": "false"
-        }
-      ],
-      "group": "Output"
-    },
-    {
-      "condition": {
-        "property": "listClientId_optional",
-        "equals": "true"
-      },
-      "id": "listClientId",
-      "label": "List Client Id",
-      "description": "List of clients assigned to the group/role",
-      "value": "",
-      "type": "String",
-      "feel": "optional",
-      "binding": {
-        "source": "\u003d result.listClientId",
-        "type": "zeebe:output"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "group": "Output"
-    },
-    {
-      "condition": {
-        "property": "identityFunction",
-        "oneOf": [
-          "create-role"
-        ]
-      },
-      "id": "roleId_optional",
-      "label": "Saved Role Id?",
-      "description": "Id of the role created/updated/deleted",
-      "value": "false",
-      "binding": {
-        "name": "roleId_optional",
-        "type": "zeebe:input"
-      },
-      "type": "Dropdown",
-      "choices": [
-        {
-          "name": "Yes",
-          "value": "true"
-        },
-        {
-          "name": "No",
-          "value": "false"
-        }
-      ],
-      "group": "Output"
-    },
-    {
-      "condition": {
-        "property": "roleId_optional",
-        "equals": "true"
-      },
-      "id": "roleId",
-      "label": "Role Id",
-      "description": "Id of the role created/updated/deleted",
-      "value": "",
-      "type": "String",
-      "feel": "optional",
-      "binding": {
-        "source": "\u003d result.roleId",
-        "type": "zeebe:output"
-      },
-      "constraints": {
-        "notEmpty": true
-      },
-      "group": "Output"
-    },
-    {
-      "condition": {
-        "property": "identityFunction",
-        "oneOf": [
-          "search-in-role"
+          "search-group",
+          "get-content-role"
         ]
       },
       "id": "listGroups_optional",
@@ -1100,6 +1096,201 @@
       "feel": "optional",
       "binding": {
         "source": "\u003d result.listGroups",
+        "type": "zeebe:output"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "Output"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
+          "get-content-group",
+          "search-role"
+        ]
+      },
+      "id": "listRoles_optional",
+      "label": "Saved List Roles?",
+      "description": "List of roles assigned to the group",
+      "value": "false",
+      "binding": {
+        "name": "listRoles_optional",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Yes",
+          "value": "true"
+        },
+        {
+          "name": "No",
+          "value": "false"
+        }
+      ],
+      "group": "Output"
+    },
+    {
+      "condition": {
+        "property": "listRoles_optional",
+        "equals": "true"
+      },
+      "id": "listRoles",
+      "label": "List Roles",
+      "description": "List of roles assigned to the group",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "source": "\u003d result.listRoles",
+        "type": "zeebe:output"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "Output"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
+          "get-content-group",
+          "get-content-role"
+        ]
+      },
+      "id": "listMappingRules_optional",
+      "label": "Saved List Mapping Rules?",
+      "description": "List of mapping rules assigned to the group",
+      "value": "false",
+      "binding": {
+        "name": "listMappingRules_optional",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Yes",
+          "value": "true"
+        },
+        {
+          "name": "No",
+          "value": "false"
+        }
+      ],
+      "group": "Output"
+    },
+    {
+      "condition": {
+        "property": "listMappingRules_optional",
+        "equals": "true"
+      },
+      "id": "listMappingRules",
+      "label": "List Mapping Rules",
+      "description": "List of mapping rules assigned to the group",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "source": "\u003d result.listMappingRules",
+        "type": "zeebe:output"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "Output"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
+          "get-content-group",
+          "get-content-role"
+        ]
+      },
+      "id": "listClientId_optional",
+      "label": "Saved List Client Id?",
+      "description": "List of clients assigned to the group/role",
+      "value": "false",
+      "binding": {
+        "name": "listClientId_optional",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Yes",
+          "value": "true"
+        },
+        {
+          "name": "No",
+          "value": "false"
+        }
+      ],
+      "group": "Output"
+    },
+    {
+      "condition": {
+        "property": "listClientId_optional",
+        "equals": "true"
+      },
+      "id": "listClientId",
+      "label": "List Client Id",
+      "description": "List of clients assigned to the group/role",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "source": "\u003d result.listClientId",
+        "type": "zeebe:output"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "Output"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
+          "create-role",
+          "update-role",
+          "add-in-role",
+          "get-content-role",
+          "delete-in-role"
+        ]
+      },
+      "id": "role_optional",
+      "label": "Saved Role?",
+      "description": "The role created/updated (raw Camunda 8 client object, not a map)",
+      "value": "false",
+      "binding": {
+        "name": "role_optional",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Yes",
+          "value": "true"
+        },
+        {
+          "name": "No",
+          "value": "false"
+        }
+      ],
+      "group": "Output"
+    },
+    {
+      "condition": {
+        "property": "role_optional",
+        "equals": "true"
+      },
+      "id": "role",
+      "label": "Role",
+      "description": "The role created/updated (raw Camunda 8 client object, not a map)",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "source": "\u003d result.role",
         "type": "zeebe:output"
       },
       "constraints": {

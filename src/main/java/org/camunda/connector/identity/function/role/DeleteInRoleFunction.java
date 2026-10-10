@@ -1,6 +1,7 @@
 package org.camunda.connector.identity.function.role;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.search.response.Role;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.cherrytemplate.RunnerParameter;
@@ -25,6 +26,9 @@ public class DeleteInRoleFunction implements IdentitySubFunction {
     public static final String ERROR_DELETE_IN_ROLE = "DELETE_IN_ROLE";
     public static final String ERROR_DELETE_IN_ROLE_LABEL = "Removing a member from the role failed";
 
+    public static final String ERROR_ROLE_NOT_FOUND = "ROLE_NOT_FOUND";
+    public static final String ERROR_ROLE_NOT_FOUND_LABEL = "No role found with the id provided";
+
     private final Logger logger = LoggerFactory.getLogger(DeleteInRoleFunction.class.getName());
 
     private static List<String> safeList(List<String> list) {
@@ -39,7 +43,24 @@ public class DeleteInRoleFunction implements IdentitySubFunction {
         String roleId = identityInput.getRoleId();
         RoleMembers roleMembers = identityInput.getRoleMembers();
         boolean ignoreIfAlreadyDone = Boolean.TRUE.equals(identityInput.getIgnoreIfAlreadyDone());
+        logger.info("--- DeleteInRole : START RoleId[{}] users[{}] groups[{}] mappingRule[{}] client[{}] ignoreIfAlreadyDone[{}]",
+                roleId,
+                roleMembers.getUsers(),
+                roleMembers.getGroups(),
+                roleMembers.getMappingRule(),
+                roleMembers.getClient(),
+                ignoreIfAlreadyDone);
         try {
+            IdentityOutput identityOutput = new IdentityOutput();
+            List<Role> items = camundaClient.newRolesSearchRequest()
+                    .filter(f -> f.roleId(roleId))
+                    .execute().items();
+            if (items == null || items.size() != 1) {
+                logger.error("--- DeleteInRole : ERROR RoleId[{}] not found, find {} items", roleId, items == null ? 0 : items.size());
+                throw new ConnectorException(ERROR_ROLE_NOT_FOUND, "No role (or too many role) found with roleId[" + roleId + "] : find " + (items == null ? 0 : items.size()));
+            }
+            identityOutput.role = items.getFirst();
+
             for (String userName : safeList(roleMembers.getUsers()))
                 removeUserFromRole(camundaClient, userName, roleId, ignoreIfAlreadyDone);
             for (String groupId : safeList(roleMembers.getGroups()))
@@ -49,22 +70,21 @@ public class DeleteInRoleFunction implements IdentitySubFunction {
             for (String clientId : safeList(roleMembers.getClient()))
                 removeClientFromRole(camundaClient, clientId, roleId, ignoreIfAlreadyDone);
 
-            IdentityOutput identityOutput = new IdentityOutput();
-            identityOutput.roleId = roleId;
-            identityOutput.status = "SUCCESS";
+            identityOutput.status = IdentityOutput.STATUS_SUCCESS;
             identityOutput.dateOperation = new Date();
-            logger.info("DeleteInRole RoleId[{}] users[{}] groups[{}] mappingRule[{}] client[{}] status[SUCCESS] in {} ms",
+            logger.info("--- DeleteInRole : END RoleId[{}] users[{}] groups[{}] mappingRule[{}] client[{}] status[{}] in {} ms",
                     roleId,
                     roleMembers.getUsers(),
                     roleMembers.getGroups(),
                     roleMembers.getMappingRule(),
                     roleMembers.getClient(),
+                    identityOutput.status,
                     System.currentTimeMillis() - markerTime);
             return identityOutput;
         } catch (ConnectorException ce) {
             throw ce;
         } catch (Exception e) {
-            logger.error("Error during DeleteInRole roleId[{}] : {}", roleId, e.getMessage());
+            logger.error("--- DeleteInRole : ERROR RoleId[{}] : {}", roleId, e.getMessage());
             throw new ConnectorException(ERROR_DELETE_IN_ROLE, "Error during delete-in-role " + e.getMessage());
         }
     }
@@ -79,7 +99,7 @@ public class DeleteInRoleFunction implements IdentitySubFunction {
                 logger.info("UserName[{}] not in roleId[{}], ignored", userName, roleId);
                 return;
             }
-            logger.error("Error removing userName[{}] from roleId[{}] : {}", userName, roleId, e);
+            logger.error("Error removing userName[{}] from roleId[{}] : ", userName, roleId, e);
             throw new ConnectorException(ERROR_DELETE_IN_ROLE, "userName[" + userName + "] roleId[" + roleId + "] : " + e.getMessage());
         }
     }
@@ -94,7 +114,7 @@ public class DeleteInRoleFunction implements IdentitySubFunction {
                 logger.info("GroupId[{}] not in roleId[{}], ignored", groupId, roleId);
                 return;
             }
-            logger.error("Error removing groupId[{}] from roleId[{}] : {}", groupId, roleId, e);
+            logger.error("Error removing groupId[{}] from roleId[{}] : ", groupId, roleId, e);
             throw new ConnectorException(ERROR_DELETE_IN_ROLE, "groupId[" + groupId + "] roleId[" + roleId + "] : " + e.getMessage());
         }
     }
@@ -109,7 +129,7 @@ public class DeleteInRoleFunction implements IdentitySubFunction {
                 logger.info("MappingRuleId[{}] not in roleId[{}], ignored", mappingRuleId, roleId);
                 return;
             }
-            logger.error("Error removing mappingRuleId[{}] from roleId[{}] : {}", mappingRuleId, roleId, e);
+            logger.error("Error removing mappingRuleId[{}] from roleId[{}] : ", mappingRuleId, roleId, e);
             throw new ConnectorException(ERROR_DELETE_IN_ROLE,
                     "mappingRuleId[" + mappingRuleId + "] roleId[" + roleId + "] : " + e.getMessage());
         }
@@ -125,7 +145,7 @@ public class DeleteInRoleFunction implements IdentitySubFunction {
                 logger.info("ClientId[{}] not in roleId[{}], ignored", clientId, roleId);
                 return;
             }
-            logger.error("Error removing clientId[{}] from roleId[{}] : {}", clientId, roleId, e);
+            logger.error("Error removing clientId[{}] from roleId[{}] : ", clientId, roleId, e);
             throw new ConnectorException(ERROR_DELETE_IN_ROLE, "clientId[" + clientId + "] roleId[" + roleId + "] : " + e.getMessage());
         }
     }
@@ -158,6 +178,13 @@ public class DeleteInRoleFunction implements IdentitySubFunction {
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_STATUS_EXPLANATION), //
 
+                RunnerParameter.getInstance(IdentityOutput.OUTPUT_ROLE, //
+                        "Role", //
+                        Role.class, //
+                        "", //
+                        RunnerParameter.Level.OPTIONAL, //
+                        IdentityOutput.OUTPUT_ROLE_EXPLANATION), //
+
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_DATE_OPERATION, //
                         "Date of operation", //
                         Date.class, //
@@ -170,12 +197,13 @@ public class DeleteInRoleFunction implements IdentitySubFunction {
     public Map<String, String> getSubFunctionListBpmnErrors() {
         return Map.of(IdentityFunction.ERROR_IDENTITY_CONNECTION, IdentityFunction.ERROR_IDENTITY_CONNECTION_LABEL, //
                 IdentityFunction.ERROR_UNKNOWN_FUNCTION, IdentityFunction.ERROR_UNKNOWN_FUNCTION_LABEL, //
+                ERROR_ROLE_NOT_FOUND, ERROR_ROLE_NOT_FOUND_LABEL, //
                 ERROR_DELETE_IN_ROLE, ERROR_DELETE_IN_ROLE_LABEL);
     }
 
     @Override
     public String getSubFunctionName() {
-        return "DeleteInRole";
+        return "Delete in role";
     }
 
     @Override

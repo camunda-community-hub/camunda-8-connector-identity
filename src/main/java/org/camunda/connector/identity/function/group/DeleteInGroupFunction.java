@@ -1,6 +1,7 @@
 package org.camunda.connector.identity.function.group;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.search.response.Group;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.cherrytemplate.RunnerParameter;
@@ -25,6 +26,9 @@ public class DeleteInGroupFunction implements IdentitySubFunction {
     public static final String ERROR_DELETE_IN_GROUP = "DELETE_IN_GROUP";
     public static final String ERROR_DELETE_IN_GROUP_LABEL = "Removing a member from the group failed";
 
+    public static final String ERROR_GROUP_NOT_FOUND = "GROUP_NOT_FOUND";
+    public static final String ERROR_GROUP_NOT_FOUND_LABEL = "No group found with the id provided";
+
     private final Logger logger = LoggerFactory.getLogger(DeleteInGroupFunction.class.getName());
 
     private static List<String> safeList(List<String> list) {
@@ -39,7 +43,24 @@ public class DeleteInGroupFunction implements IdentitySubFunction {
         String groupId = identityInput.getGroupId();
         GroupMembers groupMembers = identityInput.getGroupMembers();
         boolean ignoreIfAlreadyDone = Boolean.TRUE.equals(identityInput.getIgnoreIfAlreadyDone());
+        logger.info("--- DeleteInGroup : START GroupId[{}] users[{}] roles[{}] mappingRule[{}] client[{}] ignoreIfAlreadyDone[{}]",
+                groupId,
+                groupMembers.getUsers(),
+                groupMembers.getRoles(),
+                groupMembers.getMappingRule(),
+                groupMembers.getClient(),
+                ignoreIfAlreadyDone);
         try {
+            IdentityOutput identityOutput = new IdentityOutput();
+            List<Group> items = camundaClient.newGroupsSearchRequest()
+                    .filter(f -> f.groupId(groupId))
+                    .execute().items();
+            if (items == null || items.size() != 1) {
+                logger.error("--- DeleteInGroup : ERROR GroupId[{}] not found, find {} items", groupId, items == null ? 0 : items.size());
+                throw new ConnectorException(ERROR_GROUP_NOT_FOUND, "No group (or too many group) found with groupId[" + groupId + "] : find " + (items == null ? 0 : items.size()));
+            }
+            identityOutput.group = items.getFirst();
+
             for (String userName : safeList(groupMembers.getUsers()))
                 removeUserFromGroup(camundaClient, userName, groupId, ignoreIfAlreadyDone);
             for (String roleId : safeList(groupMembers.getRoles()))
@@ -49,22 +70,21 @@ public class DeleteInGroupFunction implements IdentitySubFunction {
             for (String clientId : safeList(groupMembers.getClient()))
                 removeClientFromGroup(camundaClient, clientId, groupId, ignoreIfAlreadyDone);
 
-            IdentityOutput identityOutput = new IdentityOutput();
-            identityOutput.groupId = groupId;
-            identityOutput.status = "SUCCESS";
+            identityOutput.status = IdentityOutput.STATUS_SUCCESS;
             identityOutput.dateOperation = new Date();
-            logger.info("DeleteInGroup GroupId[{}] users[{}] roles[{}] mappingRule[{}] client[{}] status[SUCCESS] in {} ms",
+            logger.info("--- DeleteInGroup : END GroupId[{}] users[{}] roles[{}] mappingRule[{}] client[{}] status[{}] in {} ms",
                     groupId,
                     groupMembers.getUsers(),
                     groupMembers.getRoles(),
                     groupMembers.getMappingRule(),
                     groupMembers.getClient(),
+                    identityOutput.status,
                     System.currentTimeMillis() - markerTime);
             return identityOutput;
         } catch (ConnectorException ce) {
             throw ce;
         } catch (Exception e) {
-            logger.error("Error during DeleteInGroup groupId[{}] : {}", groupId, e.getMessage());
+            logger.error("--- DeleteInGroup : ERROR GroupId[{}] : {}", groupId, e.getMessage());
             throw new ConnectorException(ERROR_DELETE_IN_GROUP, "Error during delete-in-group " + e.getMessage());
         }
     }
@@ -79,7 +99,7 @@ public class DeleteInGroupFunction implements IdentitySubFunction {
                 logger.info("UserName[{}] not in groupId[{}], ignored", userName, groupId);
                 return;
             }
-            logger.error("Error removing userName[{}] from groupId[{}] : {}", userName, groupId, e);
+            logger.error("Error removing userName[{}] from groupId[{}] : ", userName, groupId, e);
             throw new ConnectorException(ERROR_DELETE_IN_GROUP, "userName[" + userName + "] groupId[" + groupId + "] : " + e.getMessage());
         }
     }
@@ -94,7 +114,7 @@ public class DeleteInGroupFunction implements IdentitySubFunction {
                 logger.info("RoleId[{}] not in groupId[{}], ignored", roleId, groupId);
                 return;
             }
-            logger.error("Error removing roleId[{}] from groupId[{}] : {}", roleId, groupId, e);
+            logger.error("Error removing roleId[{}] from groupId[{}] : ", roleId, groupId, e);
             throw new ConnectorException(ERROR_DELETE_IN_GROUP, "roleId[" + roleId + "] groupId[" + groupId + "] : " + e.getMessage());
         }
     }
@@ -109,7 +129,7 @@ public class DeleteInGroupFunction implements IdentitySubFunction {
                 logger.info("MappingRuleId[{}] not in groupId[{}], ignored", mappingRuleId, groupId);
                 return;
             }
-            logger.error("Error removing mappingRuleId[{}] from groupId[{}] : {}", mappingRuleId, groupId, e);
+            logger.error("Error removing mappingRuleId[{}] from groupId[{}] : ", mappingRuleId, groupId, e);
             throw new ConnectorException(ERROR_DELETE_IN_GROUP,
                     "mappingRuleId[" + mappingRuleId + "] groupId[" + groupId + "] : " + e.getMessage());
         }
@@ -125,7 +145,7 @@ public class DeleteInGroupFunction implements IdentitySubFunction {
                 logger.info("ClientId[{}] not in groupId[{}], ignored", clientId, groupId);
                 return;
             }
-            logger.error("Error removing clientId[{}] from groupId[{}] : {}", clientId, groupId, e);
+            logger.error("Error removing clientId[{}] from groupId[{}] : ", clientId, groupId, e);
             throw new ConnectorException(ERROR_DELETE_IN_GROUP, "clientId[" + clientId + "] groupId[" + groupId + "] : " + e.getMessage());
         }
     }
@@ -158,6 +178,13 @@ public class DeleteInGroupFunction implements IdentitySubFunction {
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_STATUS_EXPLANATION), //
 
+                RunnerParameter.getInstance(IdentityOutput.OUTPUT_GROUP, //
+                        "Group", //
+                        Group.class, //
+                        "", //
+                        RunnerParameter.Level.OPTIONAL, //
+                        IdentityOutput.OUTPUT_GROUP_EXPLANATION),
+
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_DATE_OPERATION, //
                         "Date of operation", //
                         Date.class, //
@@ -170,12 +197,13 @@ public class DeleteInGroupFunction implements IdentitySubFunction {
     public Map<String, String> getSubFunctionListBpmnErrors() {
         return Map.of(IdentityFunction.ERROR_IDENTITY_CONNECTION, IdentityFunction.ERROR_IDENTITY_CONNECTION_LABEL, //
                 IdentityFunction.ERROR_UNKNOWN_FUNCTION, IdentityFunction.ERROR_UNKNOWN_FUNCTION_LABEL, //
+                ERROR_GROUP_NOT_FOUND, ERROR_GROUP_NOT_FOUND_LABEL, //
                 ERROR_DELETE_IN_GROUP, ERROR_DELETE_IN_GROUP_LABEL);
     }
 
     @Override
     public String getSubFunctionName() {
-        return "DeleteInGroup";
+        return "Delete in group";
     }
 
     @Override

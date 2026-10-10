@@ -3,8 +3,7 @@ package org.camunda.identity;
 import io.camunda.cherry.definition.connector.SdkRunnerCherryConnector;
 import io.camunda.connector.cherrytemplate.RunnerParameter;
 import org.camunda.connector.identity.IdentityFunction;
-import org.camunda.connector.identity.IdentityInput;
-import org.camunda.connector.identity.IdentityOutput;
+import org.camunda.connector.identity.toolbox.ParameterToolbox;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,10 +41,10 @@ public class DocumentationGenerator {
             writeLine(writer, cherryConnector.getDescription());
 
             writeTitle(writer, "###", "Inputs");
-            writeParameters(writer, IdentityInput.allParameters);
+            writeParameters(writer, ParameterToolbox.getInputParametersRaw());
 
             writeTitle(writer, "###", "Outputs");
-            writeParameters(writer, IdentityOutput.allParameters);
+            writeParameters(writer, ParameterToolbox.getOutputParametersRaw());
 
             writeTitle(writer, "###", "Errors");
             writeErrors(writer, involvedUserFunction.getListBpmnErrors());

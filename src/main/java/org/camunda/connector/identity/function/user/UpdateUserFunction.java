@@ -3,6 +3,7 @@ package org.camunda.connector.identity.function.user;
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.command.UpdateUserCommandStep1;
 import io.camunda.client.api.response.UpdateUserResponse;
+import io.camunda.client.api.search.response.User;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.cherrytemplate.RunnerParameter;
@@ -35,6 +36,8 @@ public class UpdateUserFunction implements IdentitySubFunction {
                                              OutboundConnectorContext context) throws ConnectorException {
         long markerTime = System.currentTimeMillis();
         String userName = identityInput.getUserName();
+        logger.info("--- UpdateUser : START UserName[{}] displayName[{}] email[{}]",
+                userName, identityInput.getUserDisplayName(), identityInput.getUserEmail());
         IdentityOutput identityOutput = new IdentityOutput();
         try {
             UpdateUserCommandStep1 command = camundaClient.newUpdateUserCommand(userName);
@@ -46,19 +49,31 @@ public class UpdateUserFunction implements IdentitySubFunction {
                 command = command.password(identityInput.getUserPassword());
             UpdateUserResponse response = command.execute();
 
-            identityOutput.userName = response.getUsername();
-            identityOutput.status = "SUCCESS";
+
+            String respondUserName = response.getUsername();
+            List<User> items = camundaClient.newUsersSearchRequest()
+                    .filter(f -> {
+                        f.username(respondUserName);
+
+                    })
+                    .execute()
+                    .items();
+            identityOutput.user = IdentityFunction.extractSingleResult(items, logger, "UpdateUser userName[" + respondUserName + "]");
+
+            identityOutput.status = IdentityOutput.STATUS_SUCCESS;
             identityOutput.dateOperation = new Date();
-            logger.info("UpdateUser UserName[{}] name[{}] email[{}] status[SUCCESS] in {} ms",
-                    identityOutput.userName,
+            logger.info("--- UpdateUser : END UserName[{}] name[{}] email[{}] status[{}] UserUpdated[{}] in {} ms",
+                    identityInput.getUserName(),
                     identityInput.getUserDisplayName(),
                     identityInput.getUserEmail(),
+                    identityOutput.status,
+                    identityOutput.user,
                     System.currentTimeMillis() - markerTime);
             return identityOutput;
         } catch (ConnectorException ce) {
             throw ce;
         } catch (Exception e) {
-            logger.error("Error during UpdateUser on {}: {}", identityInput.getUserSignature(), e.getMessage());
+            logger.error("--- UpdateUser : ERROR UserName[{}] : {}", userName, e.getMessage());
             throw new ConnectorException(ERROR_UPDATE_USER, "During update user[" + userName + "] : " + e.getMessage());
         }
     }
@@ -105,6 +120,13 @@ public class UpdateUserFunction implements IdentitySubFunction {
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_STATUS_EXPLANATION), //
 
+                RunnerParameter.getInstance(IdentityOutput.OUTPUT_USER, //
+                        "User", //
+                        User.class, //
+                        "", //
+                        RunnerParameter.Level.OPTIONAL, //
+                        IdentityOutput.OUTPUT_USER_EXPLANATION), //
+
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_DATE_OPERATION, //
                         "Date of operation", //
                         Date.class, //
@@ -122,7 +144,7 @@ public class UpdateUserFunction implements IdentitySubFunction {
 
     @Override
     public String getSubFunctionName() {
-        return "updateUser";
+        return "Update user";
     }
 
     @Override

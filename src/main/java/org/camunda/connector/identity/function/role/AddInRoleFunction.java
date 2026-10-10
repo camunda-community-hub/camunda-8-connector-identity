@@ -1,6 +1,7 @@
 package org.camunda.connector.identity.function.role;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.search.response.Role;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.cherrytemplate.RunnerParameter;
@@ -25,6 +26,9 @@ public class AddInRoleFunction implements IdentitySubFunction {
     public static final String ERROR_ADD_IN_ROLE = "ADD_IN_ROLE";
     public static final String ERROR_ADD_IN_ROLE_LABEL = "Adding a member to the role failed";
 
+    public static final String ERROR_ROLE_NOT_FOUND = "ROLE_NOT_FOUND";
+    public static final String ERROR_ROLE_NOT_FOUND_LABEL = "No role found with the id provided";
+
     private final Logger logger = LoggerFactory.getLogger(AddInRoleFunction.class.getName());
 
     private static List<String> safeList(List<String> list) {
@@ -39,7 +43,23 @@ public class AddInRoleFunction implements IdentitySubFunction {
         String roleId = identityInput.getRoleId();
         RoleMembers roleMembers = identityInput.getRoleMembers();
         boolean ignoreIfAlreadyDone = Boolean.TRUE.equals(identityInput.getIgnoreIfAlreadyDone());
+        logger.info("--- AddInRole : START RoleId[{}] users[{}] groups[{}] mappingRule[{}] client[{}] ignoreIfAlreadyDone[{}]",
+                roleId,
+                roleMembers.getUsers(),
+                roleMembers.getGroups(),
+                roleMembers.getMappingRule(),
+                roleMembers.getClient(),
+                ignoreIfAlreadyDone);
         try {
+            IdentityOutput identityOutput = new IdentityOutput();
+            List<Role> items = camundaClient.newRolesSearchRequest()
+                    .filter(f -> f.roleId(roleId))
+                    .execute().items();
+            if (items == null || items.size() != 1) {
+                logger.error("--- AddInRole : ERROR RoleId[{}] not found: find {} items", roleId, items == null ? "null" : items.size());
+                throw new ConnectorException(ERROR_ROLE_NOT_FOUND, "No group (or too many group) found with roleId[" + roleId + "] : find " + items.size());
+            }
+            identityOutput.role = items.getFirst();
             for (String userName : safeList(roleMembers.getUsers()))
                 addUserInRole(camundaClient, userName, roleId, ignoreIfAlreadyDone);
             for (String groupId : safeList(roleMembers.getGroups()))
@@ -49,22 +69,21 @@ public class AddInRoleFunction implements IdentitySubFunction {
             for (String clientId : safeList(roleMembers.getClient()))
                 addClientInRole(camundaClient, clientId, roleId, ignoreIfAlreadyDone);
 
-            IdentityOutput identityOutput = new IdentityOutput();
-            identityOutput.roleId = roleId;
-            identityOutput.status = "SUCCESS";
+            identityOutput.status = IdentityOutput.STATUS_SUCCESS;
             identityOutput.dateOperation = new Date();
-            logger.info("AddInRole RoleId[{}] users[{}] groups[{}] mappingRule[{}] client[{}] status[SUCCESS] in {} ms",
+            logger.info("--- AddInRole : END RoleId[{}] users[{}] groups[{}] mappingRule[{}] client[{}] status[{}] in {} ms",
                     roleId,
                     roleMembers.getUsers(),
                     roleMembers.getGroups(),
                     roleMembers.getMappingRule(),
                     roleMembers.getClient(),
+                    identityOutput.status,
                     System.currentTimeMillis() - markerTime);
             return identityOutput;
         } catch (ConnectorException ce) {
             throw ce;
         } catch (Exception e) {
-            logger.error("Error during AddInRole roleId[{}] : {}", roleId, e.getMessage());
+            logger.error("--- AddInRole : ERROR RoleId[{}] : {}", roleId, e.getMessage());
             throw new ConnectorException(ERROR_ADD_IN_ROLE, "Error during add-in-role " + e.getMessage());
         }
     }
@@ -79,7 +98,7 @@ public class AddInRoleFunction implements IdentitySubFunction {
                 logger.info("UserName[{}] already in roleId[{}], ignored", userName, roleId);
                 return;
             }
-            logger.error("Error adding userName[{}] in roleId[{}] : {}", userName, roleId, e);
+            logger.error("Error adding userName[{}] in roleId[{}] : ", userName, roleId, e);
             throw new ConnectorException(ERROR_ADD_IN_ROLE, "userName[" + userName + "] roleId[" + roleId + "] : " + e.getMessage());
         }
     }
@@ -94,7 +113,7 @@ public class AddInRoleFunction implements IdentitySubFunction {
                 logger.info("GroupId[{}] already in roleId[{}], ignored", groupId, roleId);
                 return;
             }
-            logger.error("Error adding groupId[{}] in roleId[{}] : {}", groupId, roleId, e);
+            logger.error("Error adding groupId[{}] in roleId[{}] : ", groupId, roleId, e);
             throw new ConnectorException(ERROR_ADD_IN_ROLE, "groupId[" + groupId + "] roleId[" + roleId + "] : " + e.getMessage());
         }
     }
@@ -109,7 +128,7 @@ public class AddInRoleFunction implements IdentitySubFunction {
                 logger.info("MappingRuleId[{}] already in roleId[{}], ignored", mappingRuleId, roleId);
                 return;
             }
-            logger.error("Error adding mappingRuleId[{}] in roleId[{}] : {}", mappingRuleId, roleId, e);
+            logger.error("Error adding mappingRuleId[{}] in roleId[{}] : ", mappingRuleId, roleId, e);
             throw new ConnectorException(ERROR_ADD_IN_ROLE,
                     "mappingRuleId[" + mappingRuleId + "] roleId[" + roleId + "] : " + e.getMessage());
         }
@@ -125,7 +144,7 @@ public class AddInRoleFunction implements IdentitySubFunction {
                 logger.info("ClientId[{}] already in roleId[{}], ignored", clientId, roleId);
                 return;
             }
-            logger.error("Error adding clientId[{}] in roleId[{}] : {}", clientId, roleId, e);
+            logger.error("Error adding clientId[{}] in roleId[{}] : ", clientId, roleId, e);
             throw new ConnectorException(ERROR_ADD_IN_ROLE, "clientId[" + clientId + "] roleId[" + roleId + "] : " + e.getMessage());
         }
     }
@@ -158,6 +177,13 @@ public class AddInRoleFunction implements IdentitySubFunction {
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_STATUS_EXPLANATION), //
 
+                RunnerParameter.getInstance(IdentityOutput.OUTPUT_ROLE, //
+                        "Role", //
+                        Role.class, //
+                        null, //
+                        RunnerParameter.Level.OPTIONAL, //
+                        IdentityOutput.OUTPUT_ROLE_EXPLANATION),
+
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_DATE_OPERATION, //
                         "Date of operation", //
                         Date.class, //
@@ -170,12 +196,13 @@ public class AddInRoleFunction implements IdentitySubFunction {
     public Map<String, String> getSubFunctionListBpmnErrors() {
         return Map.of(IdentityFunction.ERROR_IDENTITY_CONNECTION, IdentityFunction.ERROR_IDENTITY_CONNECTION_LABEL, //
                 IdentityFunction.ERROR_UNKNOWN_FUNCTION, IdentityFunction.ERROR_UNKNOWN_FUNCTION_LABEL, //
+                ERROR_ROLE_NOT_FOUND, ERROR_ROLE_NOT_FOUND_LABEL, //
                 ERROR_ADD_IN_ROLE, ERROR_ADD_IN_ROLE_LABEL);
     }
 
     @Override
     public String getSubFunctionName() {
-        return "AddInRole";
+        return "Add in role";
     }
 
     @Override

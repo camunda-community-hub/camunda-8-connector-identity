@@ -1,6 +1,8 @@
 package org.camunda.connector.identity.function.group;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.search.response.Group;
+import io.camunda.client.api.search.response.GroupUser;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.cherrytemplate.RunnerParameter;
@@ -12,22 +14,22 @@ import org.camunda.connector.identity.toolbox.IdentitySubFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Return the content of a group. groupContentFilter selects which categories to return
  * (users/roles/mappingRule/client) - every category set to true is populated in the matching
  * output (as the real Camunda 8 client objects, not maps).
  */
-public class SearchInGroupFunction implements IdentitySubFunction {
+public class GetContentGroupFunction implements IdentitySubFunction {
 
-    public static final String ERROR_SEARCH_IN_GROUP = "SEARCH_IN_GROUP";
-    public static final String ERROR_SEARCH_IN_GROUP_LABEL = "During the read of the group content";
+    public static final String ERROR_GET_CONTENT_GROUP = "GET_CONTENT_GROUP";
+    public static final String ERROR_GET_CONTENT_GROUP_LABEL = "During the read of the group content";
 
-    private final Logger logger = LoggerFactory.getLogger(SearchInGroupFunction.class.getName());
+    public static final String ERROR_GROUP_NOT_FOUND = "GROUP_NOT_FOUND";
+    public static final String ERROR_GROUP_NOT_FOUND_LABEL = "No group found with the id provided";
+
+    private final Logger logger = LoggerFactory.getLogger(GetContentGroupFunction.class.getName());
 
     @Override
     public IdentityOutput executeSubFunction(CamundaClient camundaClient,
@@ -36,24 +38,46 @@ public class SearchInGroupFunction implements IdentitySubFunction {
         long markerTime = System.currentTimeMillis();
         String groupId = identityInput.getGroupId();
         GroupContentFilter filter = identityInput.getGroupContentFilter();
+        logger.info("--- GetContentGroup : START GroupId[{}] filter[users={},roles={},mappingRule={},client={}]",
+                groupId,
+                filter == null || filter.isUsers(),
+                filter == null || filter.isRoles(),
+                filter == null || filter.isMappingRule(),
+                filter == null || filter.isClient());
         try {
             IdentityOutput identityOutput = new IdentityOutput();
-            identityOutput.groupId = groupId;
 
-            if (filter == null || filter.isUsers())
-                identityOutput.listUsers = camundaClient.newUsersByGroupSearchRequest(groupId).execute().items();
+            List<Group> groupItems = camundaClient.newGroupsSearchRequest()
+                    .filter(f -> f.groupId(groupId))
+                    .execute().items();
+            if (groupItems == null || groupItems.size() != 1) {
+                logger.error("--- AddInGroup : ERROR GroupId[{}] not found, find {} items", groupId, groupItems == null ? 0 : groupItems.size());
+                throw new ConnectorException(ERROR_GROUP_NOT_FOUND, "No group (or too many group) found with groupId[" + groupId + "] : find " + (groupItems == null ? 0 : groupItems.size()));
+            }
+            identityOutput.group = groupItems.getFirst();
+
+            if (filter == null || filter.isUsers()) {
+                List<GroupUser> items = camundaClient.newUsersByGroupSearchRequest(groupId).execute().items();
+                identityOutput.listUsers = new ArrayList<>();
+                for (GroupUser groupUser : items) {
+                    identityOutput.listUsers.addAll(camundaClient.newUsersSearchRequest()
+                            .filter(f -> f.username(groupUser.getUsername()))
+                            .execute().items());
+                }
+            }
             if (filter == null || filter.isRoles())
                 identityOutput.listRoles = camundaClient.newRolesByGroupSearchRequest(groupId).execute().items();
             if (filter == null || filter.isMappingRule())
                 identityOutput.listMappingRules = camundaClient.newMappingRulesByGroupSearchRequest(groupId).execute().items();
             if (filter == null || filter.isClient())
-                identityOutput.listClientId = camundaClient.newClientsByGroupSearchRequest(groupId).execute().items();
+                identityOutput.listClients = camundaClient.newClientsByGroupSearchRequest(groupId).execute().items();
 
-            identityOutput.status = "SUCCESS";
+            identityOutput.status = IdentityOutput.STATUS_SUCCESS;
             identityOutput.dateOperation = new Date();
             logger.info(
-                    "SearchInGroup GroupId[{}] filter[users={},roles={},mappingRule={},client={}] listUsers[{}] listRoles[{}] listMappingRules[{}] listClientId[{}] status[SUCCESS] in {} ms",
+                    "--- GetContentGroup : END GroupId[{}] group[{}]  filter[users={},roles={},mappingRule={},client={}] listUsers[{}] listRoles[{}] listMappingRules[{}] listClientId[{}] status[{}] in {} ms",
                     groupId,
+                    identityOutput.group,
                     filter == null || filter.isUsers(),
                     filter == null || filter.isRoles(),
                     filter == null || filter.isMappingRule(),
@@ -61,14 +85,15 @@ public class SearchInGroupFunction implements IdentitySubFunction {
                     identityOutput.listUsers,
                     identityOutput.listRoles,
                     identityOutput.listMappingRules,
-                    identityOutput.listClientId,
+                    identityOutput.listClients,
+                    identityOutput.status,
                     System.currentTimeMillis() - markerTime);
             return identityOutput;
         } catch (ConnectorException ce) {
             throw ce;
         } catch (Exception e) {
-            logger.error("Error during SearchInGroup groupId[{}] : {}", groupId, e.getMessage());
-            throw new ConnectorException(ERROR_SEARCH_IN_GROUP, "groupId[" + groupId + "] : " + e.getMessage());
+            logger.error("--- GetContentGroup : ERROR GroupId[{}] : {}", groupId, e.getMessage());
+            throw new ConnectorException(ERROR_GET_CONTENT_GROUP, "groupId[" + groupId + "] : " + e.getMessage());
         }
     }
 
@@ -91,45 +116,67 @@ public class SearchInGroupFunction implements IdentitySubFunction {
 
     @Override
     public List<RunnerParameter> getOutputsParameter() {
-        return Arrays.asList(RunnerParameter.getInstance(IdentityOutput.OUTPUT_LIST_USERS, //
-                        "List Users", //
+        return Arrays.asList(RunnerParameter.getInstance(IdentityOutput.OUTPUT_STATUS, //
+                        "Status", //
                         String.class, //
+                        "", //
+                        RunnerParameter.Level.OPTIONAL, //
+                        IdentityOutput.OUTPUT_STATUS_EXPLANATION), //
+
+                RunnerParameter.getInstance(IdentityOutput.OUTPUT_GROUP, //
+                        "Group", //
+                        Group.class, //
+                        "", //
+                        RunnerParameter.Level.OPTIONAL, //
+                        IdentityOutput.OUTPUT_GROUP_EXPLANATION), //
+
+                RunnerParameter.getInstance(IdentityOutput.OUTPUT_LIST_USERS, //
+                        "List Users", //
+                        List.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_LIST_USERS_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_LIST_ROLES, //
                         "List Roles", //
-                        String.class, //
-                        "", //
+                        List.class, //
+                        null, //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_LIST_ROLES_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_LIST_MAPPING_RULES, //
                         "List Mapping Rules", //
-                        String.class, //
-                        "", //
+                        List.class, //
+                        null, //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_LIST_MAPPING_RULES_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_LIST_CLIENT_ID, //
                         "List Client Id", //
-                        String.class, //
-                        "", //
+                        List.class, //
+                        null, //
                         RunnerParameter.Level.OPTIONAL, //
-                        IdentityOutput.OUTPUT_LIST_CLIENT_ID_EXPLANATION));
+                        IdentityOutput.OUTPUT_LIST_CLIENT_ID_EXPLANATION), //
+
+                RunnerParameter.getInstance(IdentityOutput.OUTPUT_DATE_OPERATION, //
+                        "Date of operation", //
+                        Date.class, //
+                        null, //
+                        RunnerParameter.Level.OPTIONAL, //
+                        IdentityOutput.OUTPUT_DATE_OPERATION_EXPLANATION));
     }
 
     @Override
     public Map<String, String> getSubFunctionListBpmnErrors() {
         return Map.of(IdentityFunction.ERROR_IDENTITY_CONNECTION, IdentityFunction.ERROR_IDENTITY_CONNECTION_LABEL, //
                 IdentityFunction.ERROR_UNKNOWN_FUNCTION, IdentityFunction.ERROR_UNKNOWN_FUNCTION_LABEL, //
-                ERROR_SEARCH_IN_GROUP, ERROR_SEARCH_IN_GROUP_LABEL);
+                ERROR_GROUP_NOT_FOUND, ERROR_GROUP_NOT_FOUND_LABEL, //
+                ERROR_GET_CONTENT_GROUP, ERROR_GET_CONTENT_GROUP_LABEL);
     }
 
     @Override
     public String getSubFunctionName() {
-        return "SearchInGroup";
+        return "Get content group";
     }
 
     @Override
@@ -139,6 +186,6 @@ public class SearchInGroupFunction implements IdentitySubFunction {
 
     @Override
     public String getSubFunctionType() {
-        return "search-in-group";
+        return "get-content-group";
     }
 }

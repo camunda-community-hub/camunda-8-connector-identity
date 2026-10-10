@@ -2,6 +2,8 @@ package org.camunda.connector.identity.function.group;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.response.CreateGroupResponse;
+import io.camunda.client.api.search.response.Group;
+import io.camunda.client.impl.search.response.GroupImpl;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.cherrytemplate.RunnerParameter;
@@ -30,20 +32,23 @@ public class CreateGroupFunction implements IdentitySubFunction {
                                              OutboundConnectorContext context) throws ConnectorException {
         long markerTime = new Date().getTime();
         boolean ignoreIfAlreadyDone = Boolean.TRUE.equals(identityInput.getIgnoreIfAlreadyDone());
+        logger.info("--- CreateGroup : START GroupId[{}] name[{}] description[{}] ignoreIfAlreadyDone[{}]",
+                identityInput.getGroupId(), identityInput.getGroupName(), identityInput.getGroupDescription(), ignoreIfAlreadyDone);
         try {
             CreateGroupResponse response = camundaClient.newCreateGroupCommand()
                     .groupId(identityInput.getGroupId())
                     .name(identityInput.getGroupName())
-                    .description(identityInput.getGroupDescription())
+                    .description(identityInput.getGroupDescription() == null ? "" : identityInput.getGroupDescription())
                     .execute();
             IdentityOutput identityOutput = new IdentityOutput();
-            identityOutput.groupId = response.getGroupId();
-            identityOutput.status = "CREATED";
+            identityOutput.group = new GroupImpl(response.getGroupId(), response.getName(), response.getDescription());
+            identityOutput.status = IdentityOutput.STATUS_CREATED;
             identityOutput.dateOperation = new Date();
-            logger.info("Create GroupId[{}] name[{}] Description [{}]status[CREATED] in {} ms",
+            logger.info("--- CreateGroup : END GroupId[{}] name[{}] Description [{}] status[{}] in {} ms",
                     identityInput.getGroupId(),
                     identityInput.getGroupName(),
                     identityInput.getGroupDescription(),
+                    identityOutput.status,
                     System.currentTimeMillis() - markerTime);
             return identityOutput;
         } catch (ConnectorException ce) {
@@ -51,14 +56,16 @@ public class CreateGroupFunction implements IdentitySubFunction {
         } catch (Exception e) {
             if (IdentityFunction.isAlreadyDoneError(e) && ignoreIfAlreadyDone) {
                 IdentityOutput identityOutput = new IdentityOutput();
-                identityOutput.groupId = identityInput.getGroupId();
-                identityOutput.status = "ALREADY_EXIST";
+                identityOutput.group = new GroupImpl(identityInput.getGroupId(), identityInput.getGroupName(), identityInput.getGroupDescription());
+
+                identityOutput.status = IdentityOutput.STATUS_ALREADY_EXIST;
                 identityOutput.dateOperation = new Date();
-                logger.info("GroupId[{}] already exists, ignored in {} ms", identityInput.getGroupId(),
+                logger.info("--- CreateGroup : END GroupId[{}] already exists, ignored, status[{}] in {} ms", identityInput.getGroupId(),
+                        identityOutput.status,
                         System.currentTimeMillis() - markerTime);
                 return identityOutput;
             }
-            logger.error("Error during CreateGroup groupId[{}] : {}", identityInput.getGroupId(), e.getMessage());
+            logger.error("--- CreateGroup : ERROR GroupId[{}] ", identityInput.getGroupId(), e);
             throw new ConnectorException(ERROR_CREATE_GROUP, "GroupId[" + identityInput.getGroupId() + "] failed " + e.getMessage());
         }
     }
@@ -100,12 +107,12 @@ public class CreateGroupFunction implements IdentitySubFunction {
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_STATUS_EXPLANATION), //
 
-                RunnerParameter.getInstance(IdentityOutput.OUTPUT_GROUP_ID, //
-                        "Group Id", //
-                        String.class, //
+                RunnerParameter.getInstance(IdentityOutput.OUTPUT_GROUP, //
+                        "Group", //
+                        Group.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
-                        IdentityOutput.OUTPUT_GROUP_ID_EXPLANATION), //
+                        IdentityOutput.OUTPUT_GROUP_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_DATE_OPERATION, //
                         "Date of operation", //
@@ -124,7 +131,7 @@ public class CreateGroupFunction implements IdentitySubFunction {
 
     @Override
     public String getSubFunctionName() {
-        return "CreateGroup";
+        return "Create group";
     }
 
     @Override

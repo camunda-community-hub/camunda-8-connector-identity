@@ -8,6 +8,8 @@ import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.api.outbound.OutboundConnectorFunction;
 import io.camunda.connector.cherrytemplate.CherryConnector;
 import io.camunda.connector.cherrytemplate.RunnerParameter;
+import org.camunda.connector.identity.function.client.AssignClientFunction;
+import org.camunda.connector.identity.function.client.UnassignClientFunction;
 import org.camunda.connector.identity.function.group.*;
 import org.camunda.connector.identity.function.role.*;
 import org.camunda.connector.identity.function.user.CreateUserFunction;
@@ -34,21 +36,29 @@ import java.util.*;
         IdentityInput.INPUT_SEARCH_BY_GROUP_ID, // searchUser
         IdentityInput.INPUT_SEARCH_BY_ROLE_ID, // searchUser
 
-        IdentityInput.INPUT_GROUP_ID, // createGroup/addInGroup/searchInGroup/deleteInGroup/deleteGroup
-        IdentityInput.INPUT_GROUP_NAME, // createGroup
+        IdentityInput.INPUT_GROUP_ID, // createGroup/updateGroup/addInGroup/searchInGroup/deleteInGroup/deleteGroup
+        IdentityInput.INPUT_GROUP_NAME, // createGroup/updateGroup
         IdentityInput.INPUT_GROUP_DESCRIPTION, // createGroup
+        IdentityInput.INPUT_GROUP_NAME_SEARCH, // searchGroup
 
         IdentityInput.INPUT_GROUP_MEMBERS, // addInGroup/deleteInGroup
 
         IdentityInput.INPUT_GROUP_CONTENT_FILTER, // searchInGroup
 
-        IdentityInput.INPUT_ROLE_ID, // createRole/addInRole/searchInRole/deleteInRole/deleteRole
-        IdentityInput.INPUT_ROLE_NAME, // createRole
+        IdentityInput.INPUT_ROLE_ID, // createRole/updateRole/addInRole/searchInRole/deleteInRole/deleteRole
+        IdentityInput.INPUT_ROLE_NAME, // createRole/updateRole
         IdentityInput.INPUT_ROLE_DESCRIPTION, // createRole
+        IdentityInput.INPUT_ROLE_NAME_SEARCH, // searchRole
 
         IdentityInput.INPUT_ROLE_MEMBERS, // addInRole/deleteInRole
 
         IdentityInput.INPUT_ROLE_CONTENT_FILTER, // searchInRole
+
+        IdentityInput.INPUT_PAGE_NUMBER, // searchRole/searchGroup
+        IdentityInput.INPUT_PAGE_SIZE, // searchRole/searchGroup
+
+        IdentityInput.INPUT_CLIENT_ID, // assignClient/unassignClient
+        IdentityInput.INPUT_TENANT_ID, // assignClient/unassignClient
 
         IdentityInput.INPUT_IGNORE_IF_ALREADY_DONE}, type = "c-identity-function")
 // createUser/deleteUser/createGroup/deleteGroup/createRole/deleteRole
@@ -63,15 +73,21 @@ public class IdentityFunction implements OutboundConnectorFunction, CherryConnec
             SearchUserFunction.class, // Search User
             UpdateUserFunction.class, // Update user
             CreateGroupFunction.class, // create group
+            SearchGroupFunction.class, // search groups by name
+            UpdateGroupFunction.class, // update a group's name
             AddInGroupFunction.class, // add users/roles/mappingRules/clients in a group
-            SearchInGroupFunction.class, // read the content of a group
+            GetContentGroupFunction.class, // read the content of a group
             DeleteInGroupFunction.class, // remove users/roles/mappingRules/clients from a group
             DeleteGroupFunction.class, // delete group
             CreateRoleFunction.class, // create role
+            SearchRoleFunction.class, // search roles by name
+            UpdateRoleFunction.class, // update a role's name
             AddInRoleFunction.class, // add users/groups/mappingRules/clients in a role
-            SearchInRoleFunction.class, // read the content of a role
+            GetContentRoleFunction.class, // read the content of a role
             DeleteInRoleFunction.class, // remove users/groups/mappingRules/clients from a role
-            DeleteRoleFunction.class); // delete role
+            DeleteRoleFunction.class, // delete role
+            AssignClientFunction.class, // assign a client to a role/group/tenant
+            UnassignClientFunction.class); // unassign a client from a role/group/tenant
     private static final String WORKER_LOGO = "data:image/png;base64,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";
 
     private final Logger logger = LoggerFactory.getLogger(IdentityFunction.class.getName());
@@ -102,6 +118,31 @@ public class IdentityFunction implements OutboundConnectorFunction, CherryConnec
             return code == 409 || code == 404;
         }
         return false;
+    }
+
+    /**
+     * Extract the single expected result from a search-by-id request performed right after a
+     * create/update command. Camunda 8's Search/Get APIs are eventually consistent (the exporter
+     * needs to index the record), so a search immediately following a write may legitimately return
+     * zero items yet, or in rare cases more than one. Either case is logged as an error, but the
+     * function continues rather than throwing (a hard failure here would turn a cosmetic/transient
+     * read-after-write gap into a BPMN incident for an operation that actually succeeded).
+     *
+     * @param items       the items returned by the search
+     * @param logger      the caller's logger
+     * @param description context to identify the search in the log (e.g. "CreateRole roleId[abc]")
+     * @return the single item, the first of several if more than one was found, or null if none was found
+     */
+    public static <T> T extractSingleResult(List<T> items, Logger logger, String description) {
+        if (items == null || items.isEmpty()) {
+            logger.error("{} : search returned no result (possible read-after-write delay in Camunda 8 secondary storage)",
+                    description);
+            return null;
+        }
+        if (items.size() > 1) {
+            logger.error("{} : search returned {} results, expected exactly one", description, items.size());
+        }
+        return items.getFirst();
     }
 
     @Override
@@ -171,7 +212,7 @@ public class IdentityFunction implements OutboundConnectorFunction, CherryConnec
 
     @Override
     public List<String> getAppliesTo() {
-        return List.of("bpmn:ServiceTask");
+        return null; // Library decide
     }
 
     public List<IdentitySubFunction> getListSubFunctions() {

@@ -2,6 +2,8 @@ package org.camunda.connector.identity.function.role;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.response.CreateRoleResponse;
+import io.camunda.client.api.search.response.Role;
+import io.camunda.client.impl.search.response.RoleImpl;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.cherrytemplate.RunnerParameter;
@@ -31,21 +33,25 @@ public class CreateRoleFunction implements IdentitySubFunction {
         long markerTime = System.currentTimeMillis();
         String roleId = identityInput.getRoleId();
         boolean ignoreIfAlreadyDone = Boolean.TRUE.equals(identityInput.getIgnoreIfAlreadyDone());
+        logger.info("--- CreateRole : START RoleId[{}] name[{}] description[{}] ignoreIfAlreadyDone[{}]",
+                roleId, identityInput.getRoleName(), identityInput.getRoleDescription(), ignoreIfAlreadyDone);
         try {
             CreateRoleResponse response = camundaClient.newCreateRoleCommand()
                     .roleId(roleId)
                     .name(identityInput.getRoleName())
-                    .description(identityInput.getRoleDescription())
+                    .description(identityInput.getRoleDescription() == null ? "" : identityInput.getRoleDescription())
                     .execute();
 
+
             IdentityOutput identityOutput = new IdentityOutput();
-            identityOutput.roleId = response.getRoleId();
-            identityOutput.status = "SUCCESS";
+            identityOutput.role = new RoleImpl(response.getRoleId(), response.getName(), response.getDescription());
+            identityOutput.status = IdentityOutput.STATUS_SUCCESS;
             identityOutput.dateOperation = new Date();
-            logger.info("CreateRole RoleId[{}] name[{}] Description[{}] status[SUCCESS] in {} ms",
+            logger.info("--- CreateRole : END RoleId[{}] name[{}] Description[{}] status[{}] in {} ms",
                     roleId,
                     identityInput.getRoleName(),
                     identityInput.getRoleDescription(),
+                    identityOutput.status,
                     System.currentTimeMillis() - markerTime);
             return identityOutput;
         } catch (ConnectorException ce) {
@@ -53,14 +59,18 @@ public class CreateRoleFunction implements IdentitySubFunction {
         } catch (Exception e) {
             if (IdentityFunction.isAlreadyDoneError(e) && ignoreIfAlreadyDone) {
                 IdentityOutput identityOutput = new IdentityOutput();
-                identityOutput.roleId = roleId;
-                identityOutput.status = "ALREADY_EXIST";
+                List<Role> items = camundaClient.newRolesSearchRequest()
+                        .filter(f -> f.roleId(roleId))
+                        .execute().items();
+                identityOutput.role = IdentityFunction.extractSingleResult(items, logger, "CreateRole roleId[" + roleId + "]");
+                identityOutput.status = IdentityOutput.STATUS_ALREADY_EXIST;
                 identityOutput.dateOperation = new Date();
-                logger.info("RoleId[{}] already exists, ignored in {} ms", roleId,
+                logger.info("--- CreateRole : END RoleId[{}] already exists, ignored, status[{}] in {} ms", roleId,
+                        identityOutput.status,
                         System.currentTimeMillis() - markerTime);
                 return identityOutput;
             }
-            logger.error("Error during CreateRole roleId[{}] : {}", roleId, e.getMessage());
+            logger.error("--- CreateRole : ERROR RoleId[{}] : ", roleId, e);
             throw new ConnectorException(ERROR_CREATE_ROLE, "RoleId[" + roleId + "] failed " + e.getMessage());
         }
     }
@@ -100,12 +110,12 @@ public class CreateRoleFunction implements IdentitySubFunction {
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_STATUS_EXPLANATION), //
 
-                RunnerParameter.getInstance(IdentityOutput.OUTPUT_ROLE_ID, //
-                        "Role Id", //
-                        String.class, //
-                        "", //
+                RunnerParameter.getInstance(IdentityOutput.OUTPUT_ROLE, //
+                        "Role", //
+                        Role.class, //
+                        null, //
                         RunnerParameter.Level.OPTIONAL, //
-                        IdentityOutput.OUTPUT_ROLE_ID_EXPLANATION), //
+                        IdentityOutput.OUTPUT_ROLE_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_DATE_OPERATION, //
                         "Date of operation", //
@@ -124,7 +134,7 @@ public class CreateRoleFunction implements IdentitySubFunction {
 
     @Override
     public String getSubFunctionName() {
-        return "CreateRole";
+        return "Create role";
     }
 
     @Override

@@ -1,6 +1,7 @@
 package org.camunda.connector.identity.function.group;
 
 import io.camunda.client.CamundaClient;
+import io.camunda.client.api.search.response.Group;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.cherrytemplate.RunnerParameter;
@@ -25,6 +26,9 @@ public class AddInGroupFunction implements IdentitySubFunction {
     public static final String ERROR_ADD_IN_GROUP = "ADD_IN_GROUP";
     public static final String ERROR_ADD_IN_GROUP_LABEL = "Adding a member to the group failed";
 
+    public static final String ERROR_GROUP_NOT_FOUND = "GROUP_NOT_FOUND";
+    public static final String ERROR_GROUP_NOT_FOUND_LABEL = "No group found with the id provided";
+
     private final Logger logger = LoggerFactory.getLogger(AddInGroupFunction.class.getName());
 
     private static List<String> safeList(List<String> list) {
@@ -39,7 +43,25 @@ public class AddInGroupFunction implements IdentitySubFunction {
         String groupId = identityInput.getGroupId();
         GroupMembers groupMembers = identityInput.getGroupMembers();
         boolean ignoreIfAlreadyDone = Boolean.TRUE.equals(identityInput.getIgnoreIfAlreadyDone());
+        logger.info("--- AddInGroup : START GroupId[{}] users[{}] roles[{}] mappingRule[{}] client[{}] ignoreIfAlreadyDone[{}]",
+                groupId,
+                groupMembers.getUsers(),
+                groupMembers.getRoles(),
+                groupMembers.getMappingRule(),
+                groupMembers.getClient(),
+                ignoreIfAlreadyDone);
         try {
+            IdentityOutput identityOutput = new IdentityOutput();
+            List<Group> items = camundaClient.newGroupsSearchRequest()
+                    .filter(f -> f.groupId(groupId))
+                    .execute().items();
+            if (items == null || items.size() != 1) {
+                logger.error("--- AddInGroup : ERROR GroupId[{}] not found, find {} items", groupId, items == null ? "null" : items.size());
+                throw new ConnectorException(ERROR_GROUP_NOT_FOUND, "No group (or too many group) found with groupId[" + groupId + "] : find " + items.size());
+            }
+            identityOutput.group = items.getFirst();
+
+
             for (String userName : safeList(groupMembers.getUsers()))
                 addUserInGroup(camundaClient, userName, groupId, ignoreIfAlreadyDone);
             for (String roleId : safeList(groupMembers.getRoles()))
@@ -49,20 +71,20 @@ public class AddInGroupFunction implements IdentitySubFunction {
             for (String clientId : safeList(groupMembers.getClient()))
                 addClientInGroup(camundaClient, clientId, groupId, ignoreIfAlreadyDone);
 
-            IdentityOutput identityOutput = new IdentityOutput();
-            identityOutput.groupId = groupId;
-            identityOutput.status = "SUCCESS";
+
+            identityOutput.status = IdentityOutput.STATUS_SUCCESS;
             identityOutput.dateOperation = new Date();
-            logger.info("AddInGroup GroupId[{}] name[{}] Description [{}]status[CREATED] in {} ms",
+            logger.info("--- AddInGroup : END GroupId[{}] name[{}] Description [{}] status[{}] in {} ms",
                     identityInput.getGroupId(),
                     identityInput.getGroupName(),
                     identityInput.getGroupDescription(),
+                    identityOutput.status,
                     System.currentTimeMillis() - markerTime);
             return identityOutput;
         } catch (ConnectorException ce) {
             throw ce;
         } catch (Exception e) {
-            logger.error("Error during AddInGroup groupId[{}] : {}", groupId, e.getMessage());
+            logger.error("--- AddInGroup : ERROR GroupId[{}] : {}", groupId, e.getMessage());
             throw new ConnectorException(ERROR_ADD_IN_GROUP, "Error during add-in-group " + e.getMessage());
         }
     }
@@ -77,7 +99,7 @@ public class AddInGroupFunction implements IdentitySubFunction {
                 logger.info("UserName[{}] already in groupId[{}], ignored", userName, groupId);
                 return;
             }
-            logger.error("Error adding userName[{}] in groupId[{}] : {}", userName, groupId, e);
+            logger.error("Error adding userName[{}] in groupId[{}] : ", userName, groupId, e);
             throw new ConnectorException(ERROR_ADD_IN_GROUP, "userName[" + userName + "] groupId[" + groupId + "] : " + e.getMessage());
         }
     }
@@ -92,7 +114,7 @@ public class AddInGroupFunction implements IdentitySubFunction {
                 logger.info("RoleId[{}] already in groupId[{}], ignored", roleId, groupId);
                 return;
             }
-            logger.error("Error adding roleId[{}] in groupId[{}] : {}", roleId, groupId, e);
+            logger.error("Error adding roleId[{}] in groupId[{}] : ", roleId, groupId, e);
             throw new ConnectorException(ERROR_ADD_IN_GROUP, "roleId[" + roleId + "] groupId[" + groupId + "] : " + e.getMessage());
         }
     }
@@ -107,7 +129,7 @@ public class AddInGroupFunction implements IdentitySubFunction {
                 logger.info("MappingRuleId[{}] already in groupId[{}], ignored", mappingRuleId, groupId);
                 return;
             }
-            logger.error("Error adding mappingRuleId[{}] in groupId[{}] : {}", mappingRuleId, groupId, e);
+            logger.error("Error adding mappingRuleId[{}] in groupId[{}] : ", mappingRuleId, groupId, e);
             throw new ConnectorException(ERROR_ADD_IN_GROUP,
                     "mappingRuleId[" + mappingRuleId + "] groupId[" + groupId + "] : " + e.getMessage());
         }
@@ -123,7 +145,7 @@ public class AddInGroupFunction implements IdentitySubFunction {
                 logger.info("ClientId[{}] already in groupId[{}], ignored", clientId, groupId);
                 return;
             }
-            logger.error("Error adding clientId[{}] in groupId[{}] : {}", clientId, groupId, e);
+            logger.error("Error adding clientId[{}] in groupId[{}] : ", clientId, groupId, e);
             throw new ConnectorException(ERROR_ADD_IN_GROUP, "clientId[" + clientId + "] groupId[" + groupId + "] : " + e.getMessage());
         }
     }
@@ -155,7 +177,12 @@ public class AddInGroupFunction implements IdentitySubFunction {
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_STATUS_EXPLANATION), //
-
+                RunnerParameter.getInstance(IdentityOutput.OUTPUT_GROUP, //
+                        "Group", //
+                        Group.class, //
+                        "", //
+                        RunnerParameter.Level.OPTIONAL, //
+                        IdentityOutput.OUTPUT_GROUP_EXPLANATION),
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_DATE_OPERATION, //
                         "Date of operation", //
                         Date.class, //
@@ -168,12 +195,13 @@ public class AddInGroupFunction implements IdentitySubFunction {
     public Map<String, String> getSubFunctionListBpmnErrors() {
         return Map.of(IdentityFunction.ERROR_IDENTITY_CONNECTION, IdentityFunction.ERROR_IDENTITY_CONNECTION_LABEL, //
                 IdentityFunction.ERROR_UNKNOWN_FUNCTION, IdentityFunction.ERROR_UNKNOWN_FUNCTION_LABEL, //
+                ERROR_GROUP_NOT_FOUND, ERROR_GROUP_NOT_FOUND_LABEL,
                 ERROR_ADD_IN_GROUP, ERROR_ADD_IN_GROUP_LABEL);
     }
 
     @Override
     public String getSubFunctionName() {
-        return "AddInGroup";
+        return "Add in group";
     }
 
     @Override

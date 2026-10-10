@@ -30,15 +30,17 @@ public class DeleteRoleFunction implements IdentitySubFunction {
         long markerTime = System.currentTimeMillis();
         String roleId = identityInput.getRoleId();
         boolean ignoreIfAlreadyDone = Boolean.TRUE.equals(identityInput.getIgnoreIfAlreadyDone());
+        logger.info("--- DeleteRole : START RoleId[{}] ignoreIfAlreadyDone[{}]", roleId, ignoreIfAlreadyDone);
         try {
             camundaClient.newDeleteRoleCommand(roleId).execute();
 
             IdentityOutput identityOutput = new IdentityOutput();
-            identityOutput.roleId = roleId;
-            identityOutput.status = "SUCCESS";
+
+            identityOutput.status = IdentityOutput.STATUS_SUCCESS;
             identityOutput.dateOperation = new Date();
-            logger.info("DeleteRole RoleId[{}] status[SUCCESS] in {} ms",
+            logger.info("--- DeleteRole : END RoleId[{}] status[{}] in {} ms",
                     roleId,
+                    identityOutput.status,
                     System.currentTimeMillis() - markerTime);
             return identityOutput;
         } catch (ConnectorException ce) {
@@ -46,14 +48,14 @@ public class DeleteRoleFunction implements IdentitySubFunction {
         } catch (Exception e) {
             if (IdentityFunction.isAlreadyDoneError(e) && ignoreIfAlreadyDone) {
                 IdentityOutput identityOutput = new IdentityOutput();
-                identityOutput.roleId = roleId;
-                identityOutput.status = "ALREADY_DELETED";
+                identityOutput.status = IdentityOutput.STATUS_ALREADY_DELETED;
                 identityOutput.dateOperation = new Date();
-                logger.info("DeleteRole RoleId[{}] already deleted, ignored in {} ms", roleId,
+                logger.info("--- DeleteRole : END RoleId[{}] already deleted, ignored, status[{}] in {} ms", roleId,
+                        identityOutput.status,
                         System.currentTimeMillis() - markerTime);
                 return identityOutput;
             }
-            logger.error("Error during DeleteRole roleId[{}] : {}", roleId, e.getMessage());
+            logger.error("--- DeleteRole : ERROR RoleId[{}] : {}", roleId, e.getMessage());
             throw new ConnectorException(ERROR_DELETE_ROLE, "During delete role[" + roleId + "] : " + e.getMessage());
         }
     }
@@ -96,7 +98,7 @@ public class DeleteRoleFunction implements IdentitySubFunction {
 
     @Override
     public String getSubFunctionName() {
-        return "DeleteRole";
+        return "Delete role";
     }
 
     @Override

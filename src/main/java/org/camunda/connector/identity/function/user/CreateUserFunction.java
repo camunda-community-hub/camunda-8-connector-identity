@@ -2,6 +2,8 @@ package org.camunda.connector.identity.function.user;
 
 import io.camunda.client.CamundaClient;
 import io.camunda.client.api.response.CreateUserResponse;
+import io.camunda.client.api.search.response.User;
+import io.camunda.client.impl.search.response.UserImpl;
 import io.camunda.connector.api.error.ConnectorException;
 import io.camunda.connector.api.outbound.OutboundConnectorContext;
 import io.camunda.connector.cherrytemplate.RunnerParameter;
@@ -37,37 +39,51 @@ public class CreateUserFunction implements IdentitySubFunction {
         String password = identityInput.getUserPassword();
         boolean ignoreIfAlreadyDone = Boolean.TRUE.equals(identityInput.getIgnoreIfAlreadyDone());
 
+        logger.info("--- CreateUser : START UserName[{}] displayName[{}] email[{}] ignoreIfAlreadyDone[{}]",
+                userName, displayName, email, ignoreIfAlreadyDone);
+
         long markerTime = System.currentTimeMillis();
         IdentityOutput identityOutput = new IdentityOutput();
         try {
             CreateUserResponse response = camundaClient.newCreateUserCommand()
                     .username(userName)
-                    .name(displayName)
-                    .email(email)
-                    .password(password)
+                    .name(displayName == null ? "" : displayName)
+                    .email(email == null ? "" : email)
+                    .password(password == null ? "" : password)
                     .execute();
-            identityOutput.userName = response.getUsername();
-            identityOutput.status = "CREATED";
+
+            // Create the user from the response
+            identityOutput.user = new UserImpl(response.getUsername(), response.getName(), response.getEmail());
+            identityOutput.status = IdentityOutput.STATUS_CREATED;
             identityOutput.dateOperation = new Date();
-            logger.info("Create {} status[CREATED] in {} ms",
+            logger.info("--- CreateUser : END {} status[{}] in {} ms",
                     identityInput.getUserSignature(),
+                    identityOutput.status,
                     System.currentTimeMillis() - markerTime);
             return identityOutput;
         } catch (Exception e) {
             if (IdentityFunction.isAlreadyDoneError(e)) {
                 if (ignoreIfAlreadyDone) {
-                    identityOutput.userName = userName;
-                    identityOutput.status = "ALREADY_EXIST";
+                    List<User> items = camundaClient.newUsersSearchRequest()
+                            .filter(f -> {
+                                f.username(userName);
+
+                            })
+                            .execute()
+                            .items();
+                    identityOutput.user = IdentityFunction.extractSingleResult(items, logger, "CreateUser userName[" + userName + "]");
+                    identityOutput.status = IdentityOutput.STATUS_ALREADY_EXIST;
                     identityOutput.dateOperation = new Date();
-                    logger.info("UserName[{}] already exists, ignored in {} ms", userName,
+                    logger.info("--- CreateUser : END UserName[{}] already exists, ignored, status[{}] in {} ms", userName,
+                            identityOutput.status,
                             System.currentTimeMillis() - markerTime);
                     return identityOutput;
                 }
-                logger.error("UserName[{}] already exists: {}", userName, e.getMessage());
+                logger.error("--- CreateUser : ERROR UserName[{}] already exists: {}", userName, e.getMessage());
                 throw new ConnectorException(ERROR_USER_ALREADY_EXIST,
                         "User[" + userName + "] already exists:" + e.getMessage());
             }
-            logger.error("Error during CreateUser userName[{}] : {}", userName, e.getMessage());
+            logger.error("--- CreateUser : ERROR UserName[{}] ", userName, e);
             throw new ConnectorException(ERROR_CREATE_USER, "UserName[" + userName + "] failed " + e.getMessage());
         }
     }
@@ -119,12 +135,12 @@ public class CreateUserFunction implements IdentitySubFunction {
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_STATUS_EXPLANATION), //
 
-                RunnerParameter.getInstance(IdentityOutput.OUTPUT_USER_NAME, //
-                        "User Name", //
-                        String.class, //
+                RunnerParameter.getInstance(IdentityOutput.OUTPUT_USER, //
+                        "User", //
+                        User.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
-                        IdentityOutput.OUTPUT_USER_NAME_EXPLANATION), //
+                        IdentityOutput.OUTPUT_USER_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_DATE_OPERATION, //
                         "Date of operation", //
@@ -144,7 +160,7 @@ public class CreateUserFunction implements IdentitySubFunction {
 
     @Override
     public String getSubFunctionName() {
-        return "createUser";
+        return "Create user";
     }
 
     @Override
