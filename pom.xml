@@ -355,6 +355,15 @@
                     <exclude>org.jspecify:*</exclude>
                     <exclude>org.unbescape:*</exclude>
                     <exclude>uk.co.jemos.podam:*</exclude>
+                    <!-- JAX-RS API and the SSL-context-kickstart libraries (published under
+                         io.github.hakky54, but their classes are still packaged as nl.altindag.ssl.*)
+                         are transitively dragged in by connector-runtime-core/http-client, which is
+                         already excluded above by groupId - but Shade's artifactSet excludes only
+                         remove each artifact by its OWN groupId:artifactId, not whatever further
+                         transitive dependencies an excluded artifact pulls in under a different
+                         groupId. Both are already on the host Connector Runtime's classpath. -->
+                    <exclude>jakarta.ws.rs:*</exclude>
+                    <exclude>io.github.hakky54:*</exclude>
                   </excludes>
                 </artifactSet>
               </configuration>

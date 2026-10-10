@@ -4,7 +4,8 @@
 
 # camunda-8-connector-identity
 
-![Identity.png](Identity.png)
+<img src="Identity.png" alt="Identity.png" width="100" height="100" />
+
 A connector to manage users and groups in the Camunda 8 Identity component, via the official
 `io.camunda:camunda-client-java` SDK.
 
@@ -14,22 +15,35 @@ Camunda 8 Identity manages the users, groups, roles and mapping rules allowed to
 Tasklist, and Optimize. This connector exposes the user-, group-, role- and client-management
 operations available on the Camunda 8 Java client as BPMN service tasks:
 
-* Create a user
-* Search users (by username/name/email - wildcard `like` match -, by group, or by role)
-* Update a user
-* Delete a user
-* Create a group
+![IdentityOperations.png](doc/IdentityOperations.png)
+
+On user:
+
+* Create
+* Search (by username/name/email - wildcard `like` match -, by group, or by role)
+* Update
+* Delete
+
+On group:
+
+* Create
 * Add users/roles/mapping rules/clients in a group (one call, one `groupMembers` object)
 * Get the content of a group (its users, roles, mapping rules and/or clients, one call, one `groupContentFilter` object)
 * Search groups by name (wildcard `like` match, paginated)
 * Delete users/roles/mapping rules/clients from a group (one call, one `groupMembers` object)
 * Delete a group
-* Create a role
+
+on role:
+
+* Create
 * Add users/groups/mapping rules/clients in a role (one call, one `roleMembers` object)
 * Get the content of a role (its users, groups, mapping rules and/or clients, one call, one `roleContentFilter` object)
 * Search roles by name (wildcard `like` match, paginated)
 * Delete users/groups/mapping rules/clients from a role (one call, one `roleMembers` object)
-* Delete a role
+* Delete
+
+On Client:
+
 * Assign a client to a role, a group and/or a tenant
 * Unassign a client from a role, a group and/or a tenant
 
