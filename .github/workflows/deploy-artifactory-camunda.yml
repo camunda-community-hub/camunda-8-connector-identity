@@ -1,8 +1,10 @@
 name: deploy-artifactory-camunda
 
-# This GitHub workflow is temporary, to deploy the Jar on Jfro Artifacty here
-# https://artifacts.camunda.com/ui/repos/tree/General/camunda-consulting/io/camunda/connector/calendar-advance-function/1.1.0/calendar-advance-function-1.1.0-with-dependencies.jar
-# When the project will be referenced on the Camunda-hub, it will be deploy on Maven
+# Deploys the jar (and the -with-dependencies jar) to this project's own JFrog Artifactory repo
+# ONLY - never to Maven Central (that's deploy.yml's job, via community-action-maven-release).
+# Target: https://artifacts.camunda.com/ui/repos/tree/General/camunda-bpm-community-extensions
+# (repository id "camunda-nexus", already declared in distributionManagement via the parent pom).
+# See the "deploy-jfrog" profile in pom.xml for why a plain "mvn deploy" is otherwise a no-op.
 
 on:
   release:
@@ -20,11 +22,11 @@ jobs:
           java-version: '23'
           distribution: 'temurin'
           cache: maven
-          # Writes a <server id="camunda-consulting"> entry into settings.xml whose
+          # Writes a <server id="camunda-nexus"> entry into settings.xml whose
           # username/password are resolved from these env var names at build time
-          # (matches the "camunda-consulting" repository id in this pom's own
-          # distributionManagement override).
-          server-id: camunda-consulting
+          # (matches the "camunda-nexus" repository id in this pom's inherited
+          # distributionManagement, pointing at camunda-bpm-community-extensions).
+          server-id: camunda-nexus
           server-username: ARTIFACTORY_USR
           server-password: ARTIFACTORY_TOKEN
 
@@ -32,8 +34,8 @@ jobs:
         if: github.event_name == 'release'
         run: mvn -B versions:set -DnewVersion=${{ github.event.release.tag_name }} -DgenerateBackupPoms=false
 
-      - name: Deploy to Camunda Artifactory (camunda-consulting)
-        run: mvn -B -P camunda-consulting -DskipTests deploy
+      - name: Deploy to Camunda Artifactory (camunda-bpm-community-extensions)
+        run: mvn -B -P deploy-jfrog -DskipTests deploy
         env:
           ARTIFACTORY_USR: ${{ secrets.ARTIFACTORY_USR }}
           ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}

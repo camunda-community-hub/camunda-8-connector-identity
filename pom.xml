@@ -439,6 +439,44 @@
   </pluginRepositories>
 
     <profiles>
+        <!-- Used by .github/workflows/deploy-artifactory-camunda.yml ("mvn -P deploy-jfrog deploy")
+             to publish directly to this project's own JFrog Artifactory repo - and ONLY there, never
+             to Maven Central. The parent (community-hub-release-parent) hard-codes maven-deploy-plugin
+             to skip=true everywhere (both in pluginManagement and on the inherited, unconditional
+             "default-deploy" execution bound in its own <build>), because it expects releases to go
+             out exclusively through its own community-action-maven-release GitHub Action (which
+             deploys to Maven Central via the Sonatype Central Portal/nexus-staging-maven-plugin, not
+             via plain "mvn deploy" - see the community-action-maven-release profile below and
+             deploy.yml). This profile re-enables maven-deploy-plugin, scoped to this profile only, so
+             a plain "mvn deploy" without this profile (e.g. from deploy.yml, or a local "mvn deploy")
+             stays a no-op, matching upstream's intent. It deploys to the "camunda-nexus" repository
+             already declared in distributionManagement (inherited from the parent) - JFrog Artifactory
+             at https://artifacts.camunda.com/artifactory/camunda-bpm-community-extensions/ - which
+             requires a <server id="camunda-nexus"> entry in settings.xml with valid credentials. -->
+        <profile>
+            <id>deploy-jfrog</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-deploy-plugin</artifactId>
+                        <configuration>
+                            <skip>false</skip>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>default-deploy</id>
+                                <phase>deploy</phase>
+                                <configuration>
+                                    <skip>false</skip>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
         <!-- This project has no .github/workflows release pipeline today, so this profile is never
              activated automatically. It's added anyway so that if/when a release pipeline is added
              using the standard community-action-maven-release action (its default release-profile
