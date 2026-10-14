@@ -37,5 +37,5 @@ jobs:
       - name: Deploy to Camunda Artifactory (camunda-bpm-community-extensions)
         run: mvn -B -P deploy-jfrog -DskipTests deploy
         env:
-          ARTIFACTORY_USR: ${{ secrets.ARTIFACTORY_USR }}
-          ARTIFACTORY_TOKEN: ${{ secrets.ARTIFACTORY_TOKEN }}
+          ARTIFACTORY_USR: ${{ secrets.NEXUS_USR }}
+          ARTIFACTORY_TOKEN: ${{ secrets.NEXUS_PSW }}
