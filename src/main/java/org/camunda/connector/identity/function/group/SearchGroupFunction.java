@@ -61,28 +61,28 @@ public class SearchGroupFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getInputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityInput.INPUT_GROUP_NAME_SEARCH, //
-                        "Group Name Filter", //
+                        IdentityInput.INPUT_GROUP_NAME_SEARCH_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.REQUIRED, //
-                        IdentityInput.INPUT_GROUP_NAME_SEARCH_EXPLANATION),//
+                        IdentityInput.INPUT_GROUP_NAME_SEARCH_EXPLANATION).setGroup(IdentitySubFunction.GROUP_GROUP),//
 
-                IdentityInput.pageNumberParameter, //
+                IdentityInput.getPageNumberParameter().setGroup(IdentitySubFunction.GROUP_GROUP), //
 
-                IdentityInput.pageSizeParameter);//
+                IdentityInput.getPageSizeParameter().setGroup(IdentitySubFunction.GROUP_GROUP));//
     }
 
     @Override
     public List<RunnerParameter> getOutputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityOutput.OUTPUT_STATUS, //
-                        "Status", //
+                        IdentityOutput.OUTPUT_STATUS_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_STATUS_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_LIST_GROUPS, //
-                        "List Groups", //
+                        IdentityOutput.OUTPUT_LIST_GROUPS_LABEL, //
                         List.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //

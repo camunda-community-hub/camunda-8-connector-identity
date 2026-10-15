@@ -47,9 +47,9 @@ public class GetContentGroupFunction implements IdentitySubFunction {
         try {
             IdentityOutput identityOutput = new IdentityOutput();
 
-            List<Group> groupItems = camundaClient.newGroupsSearchRequest()
-                    .filter(f -> f.groupId(groupId))
-                    .execute().items();
+            List<Group> groupItems = IdentityFunction.retrySearchById(
+                    () -> camundaClient.newGroupsSearchRequest().filter(f -> f.groupId(groupId)).execute().items(),
+                    logger, "GetContentGroup groupId[" + groupId + "]");
             if (groupItems == null || groupItems.size() != 1) {
                 logger.error("--- AddInGroup : ERROR GroupId[{}] not found, find {} items", groupId, groupItems == null ? 0 : groupItems.size());
                 throw new ConnectorException(ERROR_GROUP_NOT_FOUND, "No group (or too many group) found with groupId[" + groupId + "] : find " + (groupItems == null ? 0 : groupItems.size()));
@@ -100,66 +100,66 @@ public class GetContentGroupFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getInputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityInput.INPUT_GROUP_ID, //
-                        "Group Id", //
+                        IdentityInput.INPUT_GROUP_ID_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.REQUIRED, //
-                        IdentityInput.INPUT_GROUP_ID_EXPLANATION),//
+                        IdentityInput.INPUT_GROUP_ID_EXPLANATION).setGroup(IdentitySubFunction.GROUP_GROUP),//
 
                 RunnerParameter.getInstance(IdentityInput.INPUT_GROUP_CONTENT_FILTER, //
-                        "Content filter", //
+                        IdentityInput.INPUT_GROUP_CONTENT_FILTER_LABEL, //
                         GroupContentFilter.class, //
                         "", //
                         RunnerParameter.Level.REQUIRED, //
-                        IdentityInput.INPUT_GROUP_CONTENT_FILTER_EXPLANATION));//
+                        IdentityInput.INPUT_GROUP_CONTENT_FILTER_EXPLANATION).setGroup(IdentitySubFunction.GROUP_GROUP));//
     }
 
     @Override
     public List<RunnerParameter> getOutputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityOutput.OUTPUT_STATUS, //
-                        "Status", //
+                        IdentityOutput.OUTPUT_STATUS_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_STATUS_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_GROUP, //
-                        "Group", //
+                        IdentityOutput.OUTPUT_GROUP_LABEL, //
                         Group.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_GROUP_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_LIST_USERS, //
-                        "List Users", //
+                        IdentityOutput.OUTPUT_LIST_USERS_LABEL, //
                         List.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_LIST_USERS_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_LIST_ROLES, //
-                        "List Roles", //
+                        IdentityOutput.OUTPUT_LIST_ROLES_LABEL, //
                         List.class, //
                         null, //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_LIST_ROLES_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_LIST_MAPPING_RULES, //
-                        "List Mapping Rules", //
+                        IdentityOutput.OUTPUT_LIST_MAPPING_RULES_LABEL, //
                         List.class, //
                         null, //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_LIST_MAPPING_RULES_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_LIST_CLIENT_ID, //
-                        "List Client Id", //
+                        IdentityOutput.OUTPUT_LIST_CLIENT_ID_LABEL, //
                         List.class, //
                         null, //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_LIST_CLIENT_ID_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_DATE_OPERATION, //
-                        "Date of operation", //
+                        IdentityOutput.OUTPUT_DATE_OPERATION_LABEL, //
                         Date.class, //
                         null, //
                         RunnerParameter.Level.OPTIONAL, //

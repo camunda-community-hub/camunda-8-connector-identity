@@ -38,11 +38,13 @@ public class CreateUserFunction implements IdentitySubFunction {
         String email = identityInput.getUserEmail();
         String password = identityInput.getUserPassword();
         boolean ignoreIfAlreadyDone = Boolean.TRUE.equals(identityInput.getIgnoreIfAlreadyDone());
+        Long waitExport = identityInput.getWaitExport();
 
-        logger.info("--- CreateUser : START UserName[{}] displayName[{}] email[{}] ignoreIfAlreadyDone[{}]",
-                userName, displayName, email, ignoreIfAlreadyDone);
+        logger.info("--- CreateUser : START UserName[{}] displayName[{}] email[{}] ignoreIfAlreadyDone[{}] waitExport[{}]",
+                userName, displayName, email, ignoreIfAlreadyDone, waitExport);
 
         long markerTime = System.currentTimeMillis();
+
         IdentityOutput identityOutput = new IdentityOutput();
         try {
             CreateUserResponse response = camundaClient.newCreateUserCommand()
@@ -53,6 +55,8 @@ public class CreateUserFunction implements IdentitySubFunction {
                     .execute();
 
             // Create the user from the response
+            IdentityFunction.waitExport(waitExport, logger, "CreateUser userName[" + userName + "]");
+
             identityOutput.user = new UserImpl(response.getUsername(), response.getName(), response.getEmail());
             identityOutput.status = IdentityOutput.STATUS_CREATED;
             identityOutput.dateOperation = new Date();
@@ -65,10 +69,7 @@ public class CreateUserFunction implements IdentitySubFunction {
             if (IdentityFunction.isAlreadyDoneError(e)) {
                 if (ignoreIfAlreadyDone) {
                     List<User> items = camundaClient.newUsersSearchRequest()
-                            .filter(f -> {
-                                f.username(userName);
-
-                            })
+                            .filter(f -> f.username(userName))
                             .execute()
                             .items();
                     identityOutput.user = IdentityFunction.extractSingleResult(items, logger, "CreateUser userName[" + userName + "]");
@@ -91,35 +92,37 @@ public class CreateUserFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getInputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityInput.INPUT_USER_NAME, //
-                        "User Name", //
+                        IdentityInput.INPUT_USER_NAME_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.REQUIRED, //
-                        IdentityInput.INPUT_USER_NAME_EXPLANATION),//
+                        IdentityInput.INPUT_USER_NAME_EXPLANATION).setGroup(IdentitySubFunction.USER_GROUP),//
 
                 RunnerParameter.getInstance(IdentityInput.INPUT_USER_DISPLAY_NAME, //
-                                "Name", //
+                                IdentityInput.INPUT_USER_DISPLAY_NAME_LABEL, //
                                 String.class, //
                                 "", //
                                 RunnerParameter.Level.OPTIONAL, //
                                 IdentityInput.INPUT_USER_DISPLAY_NAME_EXPLANATION)
-                        .setVisibleInTemplate(),//
+                        .setVisibleInTemplate().setGroup(IdentitySubFunction.USER_GROUP),//
 
                 RunnerParameter.getInstance(IdentityInput.INPUT_USER_EMAIL, //
-                                "Email", //
+                                IdentityInput.INPUT_USER_EMAIL_LABEL, //
                                 String.class, //
                                 "", //
                                 RunnerParameter.Level.OPTIONAL, //
                                 IdentityInput.INPUT_USER_EMAIL_EXPLANATION)
-                        .setVisibleInTemplate(),//
+                        .setVisibleInTemplate().setGroup(IdentitySubFunction.USER_GROUP),//
 
                 RunnerParameter.getInstance(IdentityInput.INPUT_USER_PASSWORD, //
-                                "Password", //
+                                IdentityInput.INPUT_USER_PASSWORD_LABEL, //
                                 String.class, //
                                 "", //
                                 RunnerParameter.Level.OPTIONAL, //
                                 IdentityInput.INPUT_USER_PASSWORD_EXPLANATION)
-                        .setVisibleInTemplate(),//
+                        .setVisibleInTemplate().setGroup(IdentitySubFunction.USER_GROUP),//
+
+                IdentityInput.getWaitExportParameter(), //
 
                 IdentityInput.getIgnoreIfAlreadyDoneParameter() //
 
@@ -129,21 +132,21 @@ public class CreateUserFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getOutputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityOutput.OUTPUT_STATUS, //
-                        "Status", //
+                        IdentityOutput.OUTPUT_STATUS_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_STATUS_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_USER, //
-                        "User", //
+                        IdentityOutput.OUTPUT_USER_LABEL, //
                         User.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_USER_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_DATE_OPERATION, //
-                        "Date of operation", //
+                        IdentityOutput.OUTPUT_DATE_OPERATION_LABEL, //
                         Date.class, //
                         null, //
                         RunnerParameter.Level.OPTIONAL, //

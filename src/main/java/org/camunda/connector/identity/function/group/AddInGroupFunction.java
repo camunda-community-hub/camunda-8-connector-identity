@@ -43,21 +43,23 @@ public class AddInGroupFunction implements IdentitySubFunction {
         String groupId = identityInput.getGroupId();
         GroupMembers groupMembers = identityInput.getGroupMembers();
         boolean ignoreIfAlreadyDone = Boolean.TRUE.equals(identityInput.getIgnoreIfAlreadyDone());
-        logger.info("--- AddInGroup : START GroupId[{}] users[{}] roles[{}] mappingRule[{}] client[{}] ignoreIfAlreadyDone[{}]",
+        Long waitExport = identityInput.getWaitExport();
+        logger.info("--- AddInGroup : START GroupId[{}] users[{}] roles[{}] mappingRule[{}] client[{}] ignoreIfAlreadyDone[{}] waitExport[{}]",
                 groupId,
                 groupMembers.getUsers(),
                 groupMembers.getRoles(),
                 groupMembers.getMappingRule(),
                 groupMembers.getClient(),
-                ignoreIfAlreadyDone);
+                ignoreIfAlreadyDone,
+                waitExport);
         try {
             IdentityOutput identityOutput = new IdentityOutput();
-            List<Group> items = camundaClient.newGroupsSearchRequest()
-                    .filter(f -> f.groupId(groupId))
-                    .execute().items();
+            List<Group> items = IdentityFunction.retrySearchById(
+                    () -> camundaClient.newGroupsSearchRequest().filter(f -> f.groupId(groupId)).execute().items(),
+                    logger, "AddInGroup groupId[" + groupId + "]");
             if (items == null || items.size() != 1) {
                 logger.error("--- AddInGroup : ERROR GroupId[{}] not found, find {} items", groupId, items == null ? "null" : items.size());
-                throw new ConnectorException(ERROR_GROUP_NOT_FOUND, "No group (or too many group) found with groupId[" + groupId + "] : find " + items.size());
+                throw new ConnectorException(ERROR_GROUP_NOT_FOUND, "No group (or too many group) found with groupId[" + groupId + "] : find " + (items == null ? 0 : items.size()));
             }
             identityOutput.group = items.getFirst();
 
@@ -71,6 +73,7 @@ public class AddInGroupFunction implements IdentitySubFunction {
             for (String clientId : safeList(groupMembers.getClient()))
                 addClientInGroup(camundaClient, clientId, groupId, ignoreIfAlreadyDone);
 
+            IdentityFunction.waitExport(waitExport, logger, "AddInGroup groupId[" + groupId + "]");
 
             identityOutput.status = IdentityOutput.STATUS_SUCCESS;
             identityOutput.dateOperation = new Date();
@@ -153,18 +156,20 @@ public class AddInGroupFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getInputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityInput.INPUT_GROUP_ID, //
-                        "Group Id", //
+                        IdentityInput.INPUT_GROUP_ID_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.REQUIRED, //
-                        IdentityInput.INPUT_GROUP_ID_EXPLANATION),//
+                        IdentityInput.INPUT_GROUP_ID_EXPLANATION).setGroup(IdentitySubFunction.GROUP_GROUP),//
 
                 RunnerParameter.getInstance(IdentityInput.INPUT_GROUP_MEMBERS, //
-                        "Members", //
+                        IdentityInput.INPUT_GROUP_MEMBERS_LABEL, //
                         GroupMembers.class, //
                         "", //
                         RunnerParameter.Level.REQUIRED, //
-                        IdentityInput.INPUT_GROUP_MEMBERS_EXPLANATION),//
+                        IdentityInput.INPUT_GROUP_MEMBERS_EXPLANATION).setGroup(IdentitySubFunction.GROUP_GROUP),//
+
+                IdentityInput.getWaitExportParameter(), //
 
                 IdentityInput.getIgnoreIfAlreadyDoneParameter());//
     }
@@ -172,19 +177,19 @@ public class AddInGroupFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getOutputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityOutput.OUTPUT_STATUS, //
-                        "Status", //
+                        IdentityOutput.OUTPUT_STATUS_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_STATUS_EXPLANATION), //
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_GROUP, //
-                        "Group", //
+                        IdentityOutput.OUTPUT_GROUP_LABEL, //
                         Group.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_GROUP_EXPLANATION),
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_DATE_OPERATION, //
-                        "Date of operation", //
+                        IdentityOutput.OUTPUT_DATE_OPERATION_LABEL, //
                         Date.class, //
                         null, //
                         RunnerParameter.Level.OPTIONAL, //

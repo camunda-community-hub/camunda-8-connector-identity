@@ -36,8 +36,9 @@ public class UpdateUserFunction implements IdentitySubFunction {
                                              OutboundConnectorContext context) throws ConnectorException {
         long markerTime = System.currentTimeMillis();
         String userName = identityInput.getUserName();
-        logger.info("--- UpdateUser : START UserName[{}] displayName[{}] email[{}]",
-                userName, identityInput.getUserDisplayName(), identityInput.getUserEmail());
+        Long waitExport = identityInput.getWaitExport();
+        logger.info("--- UpdateUser : START UserName[{}] displayName[{}] email[{}] waitExport[{}]",
+                userName, identityInput.getUserDisplayName(), identityInput.getUserEmail(), waitExport);
         IdentityOutput identityOutput = new IdentityOutput();
         try {
             UpdateUserCommandStep1 command = camundaClient.newUpdateUserCommand(userName);
@@ -52,14 +53,12 @@ public class UpdateUserFunction implements IdentitySubFunction {
 
             String respondUserName = response.getUsername();
             List<User> items = camundaClient.newUsersSearchRequest()
-                    .filter(f -> {
-                        f.username(respondUserName);
-
-                    })
+                    .filter(f -> f.username(respondUserName))
                     .execute()
                     .items();
             identityOutput.user = IdentityFunction.extractSingleResult(items, logger, "UpdateUser userName[" + respondUserName + "]");
 
+            IdentityFunction.waitExport(waitExport, logger, "UpdateUser userName[" + respondUserName + "]");
             identityOutput.status = IdentityOutput.STATUS_SUCCESS;
             identityOutput.dateOperation = new Date();
             logger.info("--- UpdateUser : END UserName[{}] name[{}] email[{}] status[{}] UserUpdated[{}] in {} ms",
@@ -81,32 +80,34 @@ public class UpdateUserFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getInputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityInput.INPUT_USER_NAME, //
-                        "User Name", //
+                        IdentityInput.INPUT_USER_NAME_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.REQUIRED, //
-                        IdentityInput.INPUT_USER_NAME_EXPLANATION),//
+                        IdentityInput.INPUT_USER_NAME_EXPLANATION).setGroup(IdentitySubFunction.USER_GROUP),//
 
                 RunnerParameter.getInstance(IdentityInput.INPUT_USER_DISPLAY_NAME, //
-                        "Name", //
+                        IdentityInput.INPUT_USER_DISPLAY_NAME_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
-                        IdentityInput.INPUT_USER_DISPLAY_NAME_EXPLANATION),//
+                        IdentityInput.INPUT_USER_DISPLAY_NAME_EXPLANATION).setGroup(IdentitySubFunction.USER_GROUP),//
 
                 RunnerParameter.getInstance(IdentityInput.INPUT_USER_EMAIL, //
-                        "Email", //
+                        IdentityInput.INPUT_USER_EMAIL_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
-                        IdentityInput.INPUT_USER_EMAIL_EXPLANATION),//
+                        IdentityInput.INPUT_USER_EMAIL_EXPLANATION).setGroup(IdentitySubFunction.USER_GROUP),//
 
                 RunnerParameter.getInstance(IdentityInput.INPUT_USER_PASSWORD, //
-                        "Password", //
+                        IdentityInput.INPUT_USER_PASSWORD_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
-                        IdentityInput.INPUT_USER_PASSWORD_EXPLANATION)//
+                        IdentityInput.INPUT_USER_PASSWORD_EXPLANATION).setGroup(IdentitySubFunction.USER_GROUP),//
+
+                IdentityInput.getWaitExportParameter()//
         );
 
     }
@@ -114,21 +115,21 @@ public class UpdateUserFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getOutputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityOutput.OUTPUT_STATUS, //
-                        "Status", //
+                        IdentityOutput.OUTPUT_STATUS_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_STATUS_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_USER, //
-                        "User", //
+                        IdentityOutput.OUTPUT_USER_LABEL, //
                         User.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_USER_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_DATE_OPERATION, //
-                        "Date of operation", //
+                        IdentityOutput.OUTPUT_DATE_OPERATION_LABEL, //
                         Date.class, //
                         null, //
                         RunnerParameter.Level.OPTIONAL, //

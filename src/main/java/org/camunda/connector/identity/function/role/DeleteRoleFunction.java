@@ -30,14 +30,17 @@ public class DeleteRoleFunction implements IdentitySubFunction {
         long markerTime = System.currentTimeMillis();
         String roleId = identityInput.getRoleId();
         boolean ignoreIfAlreadyDone = Boolean.TRUE.equals(identityInput.getIgnoreIfAlreadyDone());
-        logger.info("--- DeleteRole : START RoleId[{}] ignoreIfAlreadyDone[{}]", roleId, ignoreIfAlreadyDone);
+        Long waitExport = identityInput.getWaitExport();
+        logger.info("--- DeleteRole : START RoleId[{}] ignoreIfAlreadyDone[{}] waitExport[{}]", roleId, ignoreIfAlreadyDone, waitExport);
         try {
             camundaClient.newDeleteRoleCommand(roleId).execute();
 
-            IdentityOutput identityOutput = new IdentityOutput();
+            IdentityFunction.waitExport(waitExport, logger, "DeleteRole roleId[" + roleId + "]");
 
+            IdentityOutput identityOutput = new IdentityOutput();
             identityOutput.status = IdentityOutput.STATUS_SUCCESS;
             identityOutput.dateOperation = new Date();
+            identityOutput.roleIdDeleted = roleId;
             logger.info("--- DeleteRole : END RoleId[{}] status[{}] in {} ms",
                     roleId,
                     identityOutput.status,
@@ -50,6 +53,7 @@ public class DeleteRoleFunction implements IdentitySubFunction {
                 IdentityOutput identityOutput = new IdentityOutput();
                 identityOutput.status = IdentityOutput.STATUS_ALREADY_DELETED;
                 identityOutput.dateOperation = new Date();
+                identityOutput.roleIdDeleted = roleId;
                 logger.info("--- DeleteRole : END RoleId[{}] already deleted, ignored, status[{}] in {} ms", roleId,
                         identityOutput.status,
                         System.currentTimeMillis() - markerTime);
@@ -63,11 +67,13 @@ public class DeleteRoleFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getInputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityInput.INPUT_ROLE_ID, //
-                        "Role Id", //
+                        IdentityInput.INPUT_ROLE_ID_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.REQUIRED, //
-                        IdentityInput.INPUT_ROLE_ID_EXPLANATION),//
+                        IdentityInput.INPUT_ROLE_ID_EXPLANATION).setGroup(IdentitySubFunction.ROLE_GROUP),//
+
+                IdentityInput.getWaitExportParameter(), //
 
                 IdentityInput.getIgnoreIfAlreadyDoneParameter());//
     }
@@ -75,18 +81,25 @@ public class DeleteRoleFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getOutputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityOutput.OUTPUT_STATUS, //
-                        "Status", //
+                        IdentityOutput.OUTPUT_STATUS_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_STATUS_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_DATE_OPERATION, //
-                        "Date of operation", //
+                        IdentityOutput.OUTPUT_DATE_OPERATION_LABEL, //
                         Date.class, //
                         null, //
                         RunnerParameter.Level.OPTIONAL, //
-                        IdentityOutput.OUTPUT_DATE_OPERATION_EXPLANATION));
+                        IdentityOutput.OUTPUT_DATE_OPERATION_EXPLANATION), //
+
+                RunnerParameter.getInstance(IdentityOutput.OUTPUT_ROLE_ID_DELETED, //
+                        IdentityOutput.OUTPUT_ROLE_ID_DELETED_LABEL, //
+                        String.class, //
+                        "", //
+                        RunnerParameter.Level.OPTIONAL, //
+                        IdentityOutput.OUTPUT_ROLE_ID_DELETED_EXPLANATION));
     }
 
     @Override

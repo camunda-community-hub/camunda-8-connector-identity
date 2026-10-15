@@ -43,21 +43,23 @@ public class AddInRoleFunction implements IdentitySubFunction {
         String roleId = identityInput.getRoleId();
         RoleMembers roleMembers = identityInput.getRoleMembers();
         boolean ignoreIfAlreadyDone = Boolean.TRUE.equals(identityInput.getIgnoreIfAlreadyDone());
-        logger.info("--- AddInRole : START RoleId[{}] users[{}] groups[{}] mappingRule[{}] client[{}] ignoreIfAlreadyDone[{}]",
+        Long waitExport = identityInput.getWaitExport();
+        logger.info("--- AddInRole : START RoleId[{}] users[{}] groups[{}] mappingRule[{}] client[{}] ignoreIfAlreadyDone[{}] waitExport[{}]",
                 roleId,
                 roleMembers.getUsers(),
                 roleMembers.getGroups(),
                 roleMembers.getMappingRule(),
                 roleMembers.getClient(),
-                ignoreIfAlreadyDone);
+                ignoreIfAlreadyDone,
+                waitExport);
         try {
             IdentityOutput identityOutput = new IdentityOutput();
-            List<Role> items = camundaClient.newRolesSearchRequest()
-                    .filter(f -> f.roleId(roleId))
-                    .execute().items();
+            List<Role> items = IdentityFunction.retrySearchById(
+                    () -> camundaClient.newRolesSearchRequest().filter(f -> f.roleId(roleId)).execute().items(),
+                    logger, "AddInRole roleId[" + roleId + "]");
             if (items == null || items.size() != 1) {
                 logger.error("--- AddInRole : ERROR RoleId[{}] not found: find {} items", roleId, items == null ? "null" : items.size());
-                throw new ConnectorException(ERROR_ROLE_NOT_FOUND, "No group (or too many group) found with roleId[" + roleId + "] : find " + items.size());
+                throw new ConnectorException(ERROR_ROLE_NOT_FOUND, "No group (or too many group) found with roleId[" + roleId + "] : find " + (items == null ? 0 : items.size()));
             }
             identityOutput.role = items.getFirst();
             for (String userName : safeList(roleMembers.getUsers()))
@@ -68,6 +70,8 @@ public class AddInRoleFunction implements IdentitySubFunction {
                 addMappingRuleInRole(camundaClient, mappingRuleId, roleId, ignoreIfAlreadyDone);
             for (String clientId : safeList(roleMembers.getClient()))
                 addClientInRole(camundaClient, clientId, roleId, ignoreIfAlreadyDone);
+
+            IdentityFunction.waitExport(waitExport, logger, "AddInRole roleId[" + roleId + "]");
 
             identityOutput.status = IdentityOutput.STATUS_SUCCESS;
             identityOutput.dateOperation = new Date();
@@ -152,18 +156,22 @@ public class AddInRoleFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getInputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityInput.INPUT_ROLE_ID, //
-                        "Role Id", //
-                        String.class, //
-                        "", //
-                        RunnerParameter.Level.REQUIRED, //
-                        IdentityInput.INPUT_ROLE_ID_EXPLANATION),//
+                                IdentityInput.INPUT_ROLE_ID_LABEL, //
+                                String.class, //
+                                "", //
+                                RunnerParameter.Level.REQUIRED, //
+                                IdentityInput.INPUT_ROLE_ID_EXPLANATION).setGroup(IdentitySubFunction.ROLE_GROUP)
+                        .setGroup("Role"),//
 
                 RunnerParameter.getInstance(IdentityInput.INPUT_ROLE_MEMBERS, //
-                        "Members", //
-                        RoleMembers.class, //
-                        "", //
-                        RunnerParameter.Level.REQUIRED, //
-                        IdentityInput.INPUT_ROLE_MEMBERS_EXPLANATION),//
+                                IdentityInput.INPUT_ROLE_MEMBERS_LABEL, //
+                                RoleMembers.class, //
+                                "", //
+                                RunnerParameter.Level.REQUIRED, //
+                                IdentityInput.INPUT_ROLE_MEMBERS_EXPLANATION).setGroup(IdentitySubFunction.ROLE_GROUP)
+                        .setGroup("Role"),//
+
+                IdentityInput.getWaitExportParameter(), //
 
                 IdentityInput.getIgnoreIfAlreadyDoneParameter());//
     }
@@ -171,21 +179,21 @@ public class AddInRoleFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getOutputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityOutput.OUTPUT_STATUS, //
-                        "Status", //
+                        IdentityOutput.OUTPUT_STATUS_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_STATUS_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_ROLE, //
-                        "Role", //
+                        IdentityOutput.OUTPUT_ROLE_LABEL, //
                         Role.class, //
                         null, //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_ROLE_EXPLANATION),
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_DATE_OPERATION, //
-                        "Date of operation", //
+                        IdentityOutput.OUTPUT_DATE_OPERATION_LABEL, //
                         Date.class, //
                         null, //
                         RunnerParameter.Level.OPTIONAL, //

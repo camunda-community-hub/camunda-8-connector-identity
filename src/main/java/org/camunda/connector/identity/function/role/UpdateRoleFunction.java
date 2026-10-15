@@ -33,15 +33,17 @@ public class UpdateRoleFunction implements IdentitySubFunction {
         String roleId = identityInput.getRoleId();
         String roleName = identityInput.getRoleName();
         String roleDescription = identityInput.getRoleDescription();
-        logger.info("--- UpdateRole : START RoleId[{}] name[{}] Description[{}]", roleId, roleName, roleDescription);
+        Long waitExport = identityInput.getWaitExport();
+        logger.info("--- UpdateRole : START RoleId[{}] name[{}] Description[{}] waitExport[{}]", roleId, roleName, roleDescription, waitExport);
         try {
             camundaClient.newUpdateRoleCommand(roleId)
                     .name(roleName)
                     .description(roleDescription)
                     .execute();
 
-            IdentityOutput identityOutput = new IdentityOutput();
+            IdentityFunction.waitExport(waitExport, logger, "UpdateRole roleId[" + roleId + "]");
 
+            IdentityOutput identityOutput = new IdentityOutput();
             identityOutput.role = new RoleImpl(roleId, roleName, roleDescription);
             identityOutput.status = IdentityOutput.STATUS_SUCCESS;
             identityOutput.dateOperation = new Date();
@@ -59,44 +61,46 @@ public class UpdateRoleFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getInputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityInput.INPUT_ROLE_ID, //
-                        "Role Id", //
+                        IdentityInput.INPUT_ROLE_ID_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.REQUIRED, //
-                        IdentityInput.INPUT_ROLE_ID_EXPLANATION),//
+                        IdentityInput.INPUT_ROLE_ID_EXPLANATION).setGroup(IdentitySubFunction.ROLE_GROUP),//
 
                 RunnerParameter.getInstance(IdentityInput.INPUT_ROLE_NAME, //
-                        "Role Name", //
+                        IdentityInput.INPUT_ROLE_NAME_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.REQUIRED, //
-                        IdentityInput.INPUT_ROLE_NAME_EXPLANATION),
+                        IdentityInput.INPUT_ROLE_NAME_EXPLANATION).setGroup(IdentitySubFunction.ROLE_GROUP),
                 RunnerParameter.getInstance(IdentityInput.INPUT_ROLE_DESCRIPTION, //
-                        "Role Description", //
+                        IdentityInput.INPUT_ROLE_DESCRIPTION_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.REQUIRED, //
-                        IdentityInput.INPUT_ROLE_DESCRIPTION_EXPLANATION));//
+                        IdentityInput.INPUT_ROLE_DESCRIPTION_EXPLANATION).setGroup(IdentitySubFunction.ROLE_GROUP),//
+
+                IdentityInput.getWaitExportParameter());//
     }
 
     @Override
     public List<RunnerParameter> getOutputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityOutput.OUTPUT_STATUS, //
-                        "Status", //
+                        IdentityOutput.OUTPUT_STATUS_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_STATUS_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_ROLE, //
-                        "Role", //
+                        IdentityOutput.OUTPUT_ROLE_LABEL, //
                         Role.class, //
                         null, //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_ROLE_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_DATE_OPERATION, //
-                        "Date of operation", //
+                        IdentityOutput.OUTPUT_DATE_OPERATION_LABEL, //
                         Date.class, //
                         null, //
                         RunnerParameter.Level.OPTIONAL, //

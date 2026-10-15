@@ -11,6 +11,18 @@ import java.util.List;
 import java.util.Map;
 
 public interface IdentitySubFunction {
+
+    /**
+     * Element-template group label for every parameter specific to one business package (user,
+     * group, role, client, authorization). Shared/cross-cutting parameters (ignoreIfAlreadyDone,
+     * waitExport) have their own cross-cutting group instead - see IdentityInput.
+     */
+    String USER_GROUP = "User";
+    String GROUP_GROUP = "Group";
+    String ROLE_GROUP = "Role";
+    String CLIENT_GROUP = "Client";
+    String AUTHORIZATION_GROUP = "Authorization";
+
     IdentityOutput executeSubFunction(CamundaClient camundaClient,
                                       IdentityInput identityInput,
                                       OutboundConnectorContext context) throws ConnectorException;

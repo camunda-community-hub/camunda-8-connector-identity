@@ -73,27 +73,27 @@ public class CreateGroupFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getInputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityInput.INPUT_GROUP_ID, //
-                        "Group Id", //
+                        IdentityInput.INPUT_GROUP_ID_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.REQUIRED, //
-                        IdentityInput.INPUT_GROUP_ID_EXPLANATION),//
+                        IdentityInput.INPUT_GROUP_ID_EXPLANATION).setGroup(IdentitySubFunction.GROUP_GROUP),//
 
                 RunnerParameter.getInstance(IdentityInput.INPUT_GROUP_NAME, //
-                                "Group Name", //
+                                IdentityInput.INPUT_GROUP_NAME_LABEL, //
                                 String.class, //
                                 "", //
                                 RunnerParameter.Level.OPTIONAL, //
                                 IdentityInput.INPUT_GROUP_NAME_EXPLANATION)
-                        .setVisibleInTemplate(),//
+                        .setVisibleInTemplate().setGroup(IdentitySubFunction.GROUP_GROUP),//
 
                 RunnerParameter.getInstance(IdentityInput.INPUT_GROUP_DESCRIPTION, //
-                                "Group Description", //
+                                IdentityInput.INPUT_GROUP_DESCRIPTION_LABEL, //
                                 String.class, //
                                 "", //
                                 RunnerParameter.Level.OPTIONAL, //
                                 IdentityInput.INPUT_GROUP_DESCRIPTION_EXPLANATION)
-                        .setVisibleInTemplate(),//
+                        .setVisibleInTemplate().setGroup(IdentitySubFunction.GROUP_GROUP),//
 
                 IdentityInput.getIgnoreIfAlreadyDoneParameter());//
     }
@@ -101,21 +101,21 @@ public class CreateGroupFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getOutputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityOutput.OUTPUT_STATUS, //
-                        "Status", //
+                        IdentityOutput.OUTPUT_STATUS_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_STATUS_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_GROUP, //
-                        "Group", //
+                        IdentityOutput.OUTPUT_GROUP_LABEL, //
                         Group.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_GROUP_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_DATE_OPERATION, //
-                        "Date of operation", //
+                        IdentityOutput.OUTPUT_DATE_OPERATION_LABEL, //
                         Date.class, //
                         null, //
                         RunnerParameter.Level.OPTIONAL, //

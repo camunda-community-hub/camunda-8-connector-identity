@@ -43,18 +43,20 @@ public class DeleteInRoleFunction implements IdentitySubFunction {
         String roleId = identityInput.getRoleId();
         RoleMembers roleMembers = identityInput.getRoleMembers();
         boolean ignoreIfAlreadyDone = Boolean.TRUE.equals(identityInput.getIgnoreIfAlreadyDone());
-        logger.info("--- DeleteInRole : START RoleId[{}] users[{}] groups[{}] mappingRule[{}] client[{}] ignoreIfAlreadyDone[{}]",
+        Long waitExport = identityInput.getWaitExport();
+        logger.info("--- DeleteInRole : START RoleId[{}] users[{}] groups[{}] mappingRule[{}] client[{}] ignoreIfAlreadyDone[{}] waitExport[{}]",
                 roleId,
                 roleMembers.getUsers(),
                 roleMembers.getGroups(),
                 roleMembers.getMappingRule(),
                 roleMembers.getClient(),
-                ignoreIfAlreadyDone);
+                ignoreIfAlreadyDone,
+                waitExport);
         try {
             IdentityOutput identityOutput = new IdentityOutput();
-            List<Role> items = camundaClient.newRolesSearchRequest()
-                    .filter(f -> f.roleId(roleId))
-                    .execute().items();
+            List<Role> items = IdentityFunction.retrySearchById(
+                    () -> camundaClient.newRolesSearchRequest().filter(f -> f.roleId(roleId)).execute().items(),
+                    logger, "DeleteInRole roleId[" + roleId + "]");
             if (items == null || items.size() != 1) {
                 logger.error("--- DeleteInRole : ERROR RoleId[{}] not found, find {} items", roleId, items == null ? 0 : items.size());
                 throw new ConnectorException(ERROR_ROLE_NOT_FOUND, "No role (or too many role) found with roleId[" + roleId + "] : find " + (items == null ? 0 : items.size()));
@@ -69,6 +71,8 @@ public class DeleteInRoleFunction implements IdentitySubFunction {
                 removeMappingRuleFromRole(camundaClient, mappingRuleId, roleId, ignoreIfAlreadyDone);
             for (String clientId : safeList(roleMembers.getClient()))
                 removeClientFromRole(camundaClient, clientId, roleId, ignoreIfAlreadyDone);
+
+            IdentityFunction.waitExport(waitExport, logger, "DeleteInRole roleId[" + roleId + "]");
 
             identityOutput.status = IdentityOutput.STATUS_SUCCESS;
             identityOutput.dateOperation = new Date();
@@ -153,18 +157,20 @@ public class DeleteInRoleFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getInputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityInput.INPUT_ROLE_ID, //
-                        "Role Id", //
+                        IdentityInput.INPUT_ROLE_ID_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.REQUIRED, //
-                        IdentityInput.INPUT_ROLE_ID_EXPLANATION),//
+                        IdentityInput.INPUT_ROLE_ID_EXPLANATION).setGroup(IdentitySubFunction.ROLE_GROUP),//
 
                 RunnerParameter.getInstance(IdentityInput.INPUT_ROLE_MEMBERS, //
-                        "Members", //
+                        IdentityInput.INPUT_ROLE_MEMBERS_LABEL, //
                         RoleMembers.class, //
                         "", //
                         RunnerParameter.Level.REQUIRED, //
-                        IdentityInput.INPUT_ROLE_MEMBERS_EXPLANATION),//
+                        IdentityInput.INPUT_ROLE_MEMBERS_EXPLANATION).setGroup(IdentitySubFunction.ROLE_GROUP),//
+
+                IdentityInput.getWaitExportParameter(), //
 
                 IdentityInput.getIgnoreIfAlreadyDoneParameter());//
     }
@@ -172,21 +178,21 @@ public class DeleteInRoleFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getOutputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityOutput.OUTPUT_STATUS, //
-                        "Status", //
+                        IdentityOutput.OUTPUT_STATUS_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_STATUS_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_ROLE, //
-                        "Role", //
+                        IdentityOutput.OUTPUT_ROLE_LABEL, //
                         Role.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_ROLE_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_DATE_OPERATION, //
-                        "Date of operation", //
+                        IdentityOutput.OUTPUT_DATE_OPERATION_LABEL, //
                         Date.class, //
                         null, //
                         RunnerParameter.Level.OPTIONAL, //

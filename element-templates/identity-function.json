@@ -19,6 +19,30 @@
   },
   "groups": [
     {
+      "id": "user",
+      "label": "User"
+    },
+    {
+      "id": "group",
+      "label": "Group"
+    },
+    {
+      "id": "role",
+      "label": "Role"
+    },
+    {
+      "id": "client",
+      "label": "Client"
+    },
+    {
+      "id": "authorization",
+      "label": "Authorization"
+    },
+    {
+      "id": "resilience",
+      "label": "Resilience"
+    },
+    {
       "id": "Input",
       "label": "Input"
     },
@@ -128,6 +152,18 @@
         {
           "name": "Unassign client",
           "value": "unassign-client"
+        },
+        {
+          "name": "Create authorization",
+          "value": "create-authorization"
+        },
+        {
+          "name": "Search authorization",
+          "value": "search-authorization"
+        },
+        {
+          "name": "Delete authorization",
+          "value": "delete-authorization"
         }
       ],
       "binding": {
@@ -161,7 +197,7 @@
       "constraints": {
         "notEmpty": true
       },
-      "group": "Input"
+      "group": "user"
     },
     {
       "condition": {
@@ -181,7 +217,7 @@
         "name": "userDisplayName",
         "type": "zeebe:input"
       },
-      "group": "Input"
+      "group": "user"
     },
     {
       "condition": {
@@ -201,7 +237,7 @@
         "name": "userEmail",
         "type": "zeebe:input"
       },
-      "group": "Input"
+      "group": "user"
     },
     {
       "condition": {
@@ -221,7 +257,7 @@
         "name": "userPassword",
         "type": "zeebe:input"
       },
-      "group": "Input"
+      "group": "user"
     },
     {
       "condition": {
@@ -240,7 +276,7 @@
         "name": "searchByUserName",
         "type": "zeebe:input"
       },
-      "group": "Input"
+      "group": "user"
     },
     {
       "condition": {
@@ -259,7 +295,7 @@
         "name": "searchByUserDisplayName",
         "type": "zeebe:input"
       },
-      "group": "Input"
+      "group": "user"
     },
     {
       "condition": {
@@ -278,7 +314,7 @@
         "name": "searchByUserEmail",
         "type": "zeebe:input"
       },
-      "group": "Input"
+      "group": "user"
     },
     {
       "condition": {
@@ -297,7 +333,7 @@
         "name": "searchByGroupId",
         "type": "zeebe:input"
       },
-      "group": "Input"
+      "group": "user"
     },
     {
       "condition": {
@@ -316,7 +352,7 @@
         "name": "searchByRoleId",
         "type": "zeebe:input"
       },
-      "group": "Input"
+      "group": "user"
     },
     {
       "condition": {
@@ -345,7 +381,7 @@
       "constraints": {
         "notEmpty": true
       },
-      "group": "Input"
+      "group": "group"
     },
     {
       "condition": {
@@ -365,7 +401,7 @@
         "name": "groupName",
         "type": "zeebe:input"
       },
-      "group": "Input"
+      "group": "group"
     },
     {
       "condition": {
@@ -385,7 +421,7 @@
         "name": "groupDescription",
         "type": "zeebe:input"
       },
-      "group": "Input"
+      "group": "group"
     },
     {
       "condition": {
@@ -407,7 +443,7 @@
       "constraints": {
         "notEmpty": true
       },
-      "group": "Input"
+      "group": "group"
     },
     {
       "condition": {
@@ -430,7 +466,7 @@
       "constraints": {
         "notEmpty": true
       },
-      "group": "Input"
+      "group": "group"
     },
     {
       "condition": {
@@ -453,7 +489,7 @@
       "constraints": {
         "notEmpty": true
       },
-      "group": "Input"
+      "group": "group"
     },
     {
       "condition": {
@@ -476,7 +512,7 @@
       "constraints": {
         "notEmpty": true
       },
-      "group": "Input"
+      "group": "group"
     },
     {
       "condition": {
@@ -498,7 +534,7 @@
       "constraints": {
         "notEmpty": true
       },
-      "group": "Input"
+      "group": "group"
     },
     {
       "condition": {
@@ -527,7 +563,7 @@
       "constraints": {
         "notEmpty": true
       },
-      "group": "Input"
+      "group": "role"
     },
     {
       "condition": {
@@ -556,7 +592,7 @@
           "value": "false"
         }
       ],
-      "group": "Input"
+      "group": "role"
     },
     {
       "condition": {
@@ -573,7 +609,7 @@
         "name": "roleName",
         "type": "zeebe:input"
       },
-      "group": "Input"
+      "group": "role"
     },
     {
       "condition": {
@@ -582,32 +618,6 @@
           "create-role",
           "update-role"
         ]
-      },
-      "id": "roleDescription_optional",
-      "label": "Provide Role Description?",
-      "description": "Description of the role",
-      "value": "false",
-      "binding": {
-        "name": "roleDescription_optional",
-        "type": "zeebe:input"
-      },
-      "type": "Dropdown",
-      "choices": [
-        {
-          "name": "Yes",
-          "value": "true"
-        },
-        {
-          "name": "No",
-          "value": "false"
-        }
-      ],
-      "group": "Input"
-    },
-    {
-      "condition": {
-        "property": "roleDescription_optional",
-        "equals": "true"
       },
       "id": "roleDescription",
       "label": "Role Description",
@@ -619,7 +629,10 @@
         "name": "roleDescription",
         "type": "zeebe:input"
       },
-      "group": "Input"
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "role"
     },
     {
       "condition": {
@@ -641,7 +654,7 @@
       "constraints": {
         "notEmpty": true
       },
-      "group": "Input"
+      "group": "role"
     },
     {
       "condition": {
@@ -664,7 +677,7 @@
       "constraints": {
         "notEmpty": true
       },
-      "group": "Input"
+      "group": "role"
     },
     {
       "condition": {
@@ -686,7 +699,7 @@
       "constraints": {
         "notEmpty": true
       },
-      "group": "Input"
+      "group": "role"
     },
     {
       "condition": {
@@ -709,7 +722,7 @@
       "constraints": {
         "notEmpty": true
       },
-      "group": "Input"
+      "group": "client"
     },
     {
       "condition": {
@@ -738,7 +751,7 @@
           "value": "false"
         }
       ],
-      "group": "Input"
+      "group": "client"
     },
     {
       "condition": {
@@ -755,7 +768,610 @@
         "name": "tenantId",
         "type": "zeebe:input"
       },
-      "group": "Input"
+      "group": "client"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
+          "create-authorization"
+        ]
+      },
+      "id": "authorizationOwnerType",
+      "label": "Owner Type",
+      "description": "Type of the authorization owner. Accepted values: USER, ROLE, GROUP",
+      "value": "",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "User",
+          "value": "USER"
+        },
+        {
+          "name": "Role",
+          "value": "ROLE"
+        },
+        {
+          "name": "Group",
+          "value": "GROUP"
+        }
+      ],
+      "binding": {
+        "name": "authorizationOwnerType",
+        "type": "zeebe:input"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "authorization"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
+          "create-authorization"
+        ]
+      },
+      "id": "authorizationOwner",
+      "label": "Owner",
+      "description": "Id of the owner: a username, a roleId or a groupId, depending on authorizationOwnerType",
+      "value": "",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "name": "authorizationOwner",
+        "type": "zeebe:input"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "authorization"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
+          "create-authorization"
+        ]
+      },
+      "id": "authorizationResourceType",
+      "label": "Resource Type",
+      "description": "Type of resource to grant access to. Accepted values: AUDIT_LOG, AUTHORIZATION, BACKUP, BATCH, CLUSTER_VARIABLE, COMPONENT, DECISION_DEFINITION, DECISION_REQUIREMENTS_DEFINITION, DOCUMENT, EXPORTER, EXPRESSION, GLOBAL_LISTENER, GROUP, MAPPING_RULE, MESSAGE, PROCESS_DEFINITION, RESOURCE, ROLE, SECRET, SYSTEM, TENANT, USER, USER_TASK. For COMPONENT, the resourceId is one of \"*\", \"operate\", \"tasklist\", \"admin\".",
+      "value": "",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "AUDIT_LOG",
+          "value": "AUDIT_LOG"
+        },
+        {
+          "name": "AUTHORIZATION",
+          "value": "AUTHORIZATION"
+        },
+        {
+          "name": "BACKUP",
+          "value": "BACKUP"
+        },
+        {
+          "name": "BATCH",
+          "value": "BATCH"
+        },
+        {
+          "name": "CLUSTER_VARIABLE",
+          "value": "CLUSTER_VARIABLE"
+        },
+        {
+          "name": "COMPONENT",
+          "value": "COMPONENT"
+        },
+        {
+          "name": "DECISION_DEFINITION",
+          "value": "DECISION_DEFINITION"
+        },
+        {
+          "name": "DECISION_REQUIREMENTS_DEFINITION",
+          "value": "DECISION_REQUIREMENTS_DEFINITION"
+        },
+        {
+          "name": "DOCUMENT",
+          "value": "DOCUMENT"
+        },
+        {
+          "name": "EXPORTER",
+          "value": "EXPORTER"
+        },
+        {
+          "name": "EXPRESSION",
+          "value": "EXPRESSION"
+        },
+        {
+          "name": "GLOBAL_LISTENER",
+          "value": "GLOBAL_LISTENER"
+        },
+        {
+          "name": "GROUP",
+          "value": "GROUP"
+        },
+        {
+          "name": "MAPPING_RULE",
+          "value": "MAPPING_RULE"
+        },
+        {
+          "name": "MESSAGE",
+          "value": "MESSAGE"
+        },
+        {
+          "name": "PROCESS_DEFINITION",
+          "value": "PROCESS_DEFINITION"
+        },
+        {
+          "name": "RESOURCE",
+          "value": "RESOURCE"
+        },
+        {
+          "name": "ROLE",
+          "value": "ROLE"
+        },
+        {
+          "name": "SECRET",
+          "value": "SECRET"
+        },
+        {
+          "name": "SYSTEM",
+          "value": "SYSTEM"
+        },
+        {
+          "name": "TENANT",
+          "value": "TENANT"
+        },
+        {
+          "name": "USER",
+          "value": "USER"
+        },
+        {
+          "name": "USER_TASK",
+          "value": "USER_TASK"
+        }
+      ],
+      "binding": {
+        "name": "authorizationResourceType",
+        "type": "zeebe:input"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "authorization"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
+          "create-authorization"
+        ]
+      },
+      "id": "authorizationResourceId",
+      "label": "Resource Id",
+      "description": "Id of the resource, e.g. a process definition id, or \"*\"/\"operate\"/\"tasklist\"/\"admin\" when authorizationResourceType is COMPONENT",
+      "value": "",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "name": "authorizationResourceId",
+        "type": "zeebe:input"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "authorization"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
+          "create-authorization"
+        ]
+      },
+      "id": "authorizationPermission",
+      "label": "Permission",
+      "description": "One or more permissions to grant: either a list of strings (e.g. [\"CLAIM_USER_TASK\", \"COMPLETE_USER_TASK\"]) or a single comma-separated string (e.g. \"CLAIM_USER_TASK,COMPLETE_USER_TASK\"). Accepted values: ACCESS, CANCEL_PROCESS_INSTANCE, CLAIM, CLAIM_USER_TASK, COMPLETE, COMPLETE_USER_TASK, CREATE, CREATE_BATCH_OPERATION_CANCEL_PROCESS_INSTANCE, CREATE_BATCH_OPERATION_DELETE_DECISION_DEFINITION, CREATE_BATCH_OPERATION_DELETE_DECISION_INSTANCE, CREATE_BATCH_OPERATION_DELETE_PROCESS_DEFINITION, CREATE_BATCH_OPERATION_DELETE_PROCESS_INSTANCE, CREATE_BATCH_OPERATION_MIGRATE_PROCESS_INSTANCE, CREATE_BATCH_OPERATION_MODIFY_PROCESS_INSTANCE, CREATE_BATCH_OPERATION_RESOLVE_INCIDENT, CREATE_BATCH_OPERATION_SUSPEND_PROCESS_INSTANCE, CREATE_BATCH_OPERATION_UPDATE_JOB, CREATE_DECISION_INSTANCE, CREATE_PROCESS_INSTANCE, CREATE_TASK_LISTENER, DELETE, DELETE_DECISION_INSTANCE, DELETE_DRD, DELETE_FORM, DELETE_PROCESS, DELETE_PROCESS_INSTANCE, DELETE_RESOURCE, DELETE_TASK_LISTENER, EVALUATE, MODIFY_PROCESS_INSTANCE, PAUSE, READ, READ_DECISION_DEFINITION, READ_DECISION_INSTANCE, READ_JOB_METRIC, READ_PROCESS_DEFINITION, READ_PROCESS_INSTANCE, READ_USAGE_METRIC, READ_USER_TASK, READ_TASK_LISTENER, RESTORE, REVEAL, SUSPEND_PROCESS_INSTANCE, UPDATE, UPDATE_PROCESS_INSTANCE, UPDATE_USER_TASK, UPDATE_TASK_LISTENER. An unrecognized value throws the UNKNOWN_PERMISSION BPMN error.",
+      "value": "",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "name": "authorizationPermission",
+        "type": "zeebe:input"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "authorization"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
+          "search-authorization"
+        ]
+      },
+      "id": "authorizationSearchOwnerId_optional",
+      "label": "Provide Owner Id?",
+      "description": "Filter by the owner id (exact match)",
+      "value": "false",
+      "binding": {
+        "name": "authorizationSearchOwnerId_optional",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Yes",
+          "value": "true"
+        },
+        {
+          "name": "No",
+          "value": "false"
+        }
+      ],
+      "group": "authorization"
+    },
+    {
+      "condition": {
+        "property": "authorizationSearchOwnerId_optional",
+        "equals": "true"
+      },
+      "id": "authorizationSearchOwnerId",
+      "label": "Owner Id",
+      "description": "Filter by the owner id (exact match)",
+      "value": "",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "name": "authorizationSearchOwnerId",
+        "type": "zeebe:input"
+      },
+      "group": "authorization"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
+          "search-authorization"
+        ]
+      },
+      "id": "authorizationSearchOwnerType_optional",
+      "label": "Provide Owner Type?",
+      "description": "Filter by the owner type. Accepted values: USER, ROLE, GROUP",
+      "value": "false",
+      "binding": {
+        "name": "authorizationSearchOwnerType_optional",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Yes",
+          "value": "true"
+        },
+        {
+          "name": "No",
+          "value": "false"
+        }
+      ],
+      "group": "authorization"
+    },
+    {
+      "condition": {
+        "property": "authorizationSearchOwnerType_optional",
+        "equals": "true"
+      },
+      "id": "authorizationSearchOwnerType",
+      "label": "Owner Type",
+      "description": "Filter by the owner type. Accepted values: USER, ROLE, GROUP",
+      "value": "",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "User",
+          "value": "USER"
+        },
+        {
+          "name": "Role",
+          "value": "ROLE"
+        },
+        {
+          "name": "Group",
+          "value": "GROUP"
+        }
+      ],
+      "binding": {
+        "name": "authorizationSearchOwnerType",
+        "type": "zeebe:input"
+      },
+      "group": "authorization"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
+          "search-authorization"
+        ]
+      },
+      "id": "authorizationSearchResourceType_optional",
+      "label": "Provide Resource Type?",
+      "description": "Filter by resource type - a list of strings, or a single comma-separated string (e.g. [\"PROCESS_DEFINITION\", \"DECISION_DEFINITION\"] or \"PROCESS_DEFINITION,DECISION_DEFINITION\"). Same accepted values as authorizationResourceType on create-authorization. When several values are given, one search is run per resource type and the results are merged.",
+      "value": "false",
+      "binding": {
+        "name": "authorizationSearchResourceType_optional",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Yes",
+          "value": "true"
+        },
+        {
+          "name": "No",
+          "value": "false"
+        }
+      ],
+      "group": "authorization"
+    },
+    {
+      "condition": {
+        "property": "authorizationSearchResourceType_optional",
+        "equals": "true"
+      },
+      "id": "authorizationSearchResourceType",
+      "label": "Resource Type",
+      "description": "Filter by resource type - a list of strings, or a single comma-separated string (e.g. [\"PROCESS_DEFINITION\", \"DECISION_DEFINITION\"] or \"PROCESS_DEFINITION,DECISION_DEFINITION\"). Same accepted values as authorizationResourceType on create-authorization. When several values are given, one search is run per resource type and the results are merged.",
+      "value": "",
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "AUDIT_LOG",
+          "value": "AUDIT_LOG"
+        },
+        {
+          "name": "AUTHORIZATION",
+          "value": "AUTHORIZATION"
+        },
+        {
+          "name": "BACKUP",
+          "value": "BACKUP"
+        },
+        {
+          "name": "BATCH",
+          "value": "BATCH"
+        },
+        {
+          "name": "CLUSTER_VARIABLE",
+          "value": "CLUSTER_VARIABLE"
+        },
+        {
+          "name": "COMPONENT",
+          "value": "COMPONENT"
+        },
+        {
+          "name": "DECISION_DEFINITION",
+          "value": "DECISION_DEFINITION"
+        },
+        {
+          "name": "DECISION_REQUIREMENTS_DEFINITION",
+          "value": "DECISION_REQUIREMENTS_DEFINITION"
+        },
+        {
+          "name": "DOCUMENT",
+          "value": "DOCUMENT"
+        },
+        {
+          "name": "EXPORTER",
+          "value": "EXPORTER"
+        },
+        {
+          "name": "EXPRESSION",
+          "value": "EXPRESSION"
+        },
+        {
+          "name": "GLOBAL_LISTENER",
+          "value": "GLOBAL_LISTENER"
+        },
+        {
+          "name": "GROUP",
+          "value": "GROUP"
+        },
+        {
+          "name": "MAPPING_RULE",
+          "value": "MAPPING_RULE"
+        },
+        {
+          "name": "MESSAGE",
+          "value": "MESSAGE"
+        },
+        {
+          "name": "PROCESS_DEFINITION",
+          "value": "PROCESS_DEFINITION"
+        },
+        {
+          "name": "RESOURCE",
+          "value": "RESOURCE"
+        },
+        {
+          "name": "ROLE",
+          "value": "ROLE"
+        },
+        {
+          "name": "SECRET",
+          "value": "SECRET"
+        },
+        {
+          "name": "SYSTEM",
+          "value": "SYSTEM"
+        },
+        {
+          "name": "TENANT",
+          "value": "TENANT"
+        },
+        {
+          "name": "USER",
+          "value": "USER"
+        },
+        {
+          "name": "USER_TASK",
+          "value": "USER_TASK"
+        }
+      ],
+      "binding": {
+        "name": "authorizationSearchResourceType",
+        "type": "zeebe:input"
+      },
+      "group": "authorization"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
+          "search-authorization"
+        ]
+      },
+      "id": "authorizationSearchResourceId_optional",
+      "label": "Provide Resource Id?",
+      "description": "Filter by resource id(s) - a list of strings, or a single comma-separated string",
+      "value": "false",
+      "binding": {
+        "name": "authorizationSearchResourceId_optional",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Yes",
+          "value": "true"
+        },
+        {
+          "name": "No",
+          "value": "false"
+        }
+      ],
+      "group": "authorization"
+    },
+    {
+      "condition": {
+        "property": "authorizationSearchResourceId_optional",
+        "equals": "true"
+      },
+      "id": "authorizationSearchResourceId",
+      "label": "Resource Id",
+      "description": "Filter by resource id(s) - a list of strings, or a single comma-separated string",
+      "value": "",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "name": "authorizationSearchResourceId",
+        "type": "zeebe:input"
+      },
+      "group": "authorization"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
+          "search-authorization"
+        ]
+      },
+      "id": "authorizationSearchResourcePropertyName_optional",
+      "label": "Provide Resource Property Name?",
+      "description": "Filter by resource property name(s) - a list of strings, or a single comma-separated string",
+      "value": "false",
+      "binding": {
+        "name": "authorizationSearchResourcePropertyName_optional",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Yes",
+          "value": "true"
+        },
+        {
+          "name": "No",
+          "value": "false"
+        }
+      ],
+      "group": "authorization"
+    },
+    {
+      "condition": {
+        "property": "authorizationSearchResourcePropertyName_optional",
+        "equals": "true"
+      },
+      "id": "authorizationSearchResourcePropertyName",
+      "label": "Resource Property Name",
+      "description": "Filter by resource property name(s) - a list of strings, or a single comma-separated string",
+      "value": "",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "name": "authorizationSearchResourcePropertyName",
+        "type": "zeebe:input"
+      },
+      "group": "authorization"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
+          "delete-authorization"
+        ]
+      },
+      "id": "authorizationKey",
+      "label": "Authorization Key",
+      "description": "The authorizationKey of the authorization to delete, as returned by create-authorization in the authorizationKey output",
+      "value": "",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "name": "authorizationKey",
+        "type": "zeebe:input"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "authorization"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
+          "create-user",
+          "delete-user",
+          "update-user",
+          "update-group",
+          "add-in-group",
+          "delete-in-group",
+          "delete-group",
+          "create-role",
+          "update-role",
+          "add-in-role",
+          "delete-in-role",
+          "delete-role",
+          "assign-client",
+          "unassign-client",
+          "create-authorization",
+          "delete-authorization"
+        ]
+      },
+      "id": "waitExport",
+      "label": "Wait export",
+      "description": "Wait for Identity to export the artefact created, in millisecond",
+      "value": "0",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "name": "waitExport",
+        "type": "zeebe:input"
+      },
+      "group": "resilience"
     },
     {
       "condition": {
@@ -772,7 +1388,8 @@
           "delete-in-role",
           "delete-role",
           "assign-client",
-          "unassign-client"
+          "unassign-client",
+          "create-authorization"
         ]
       },
       "id": "ignoreIfAlreadyDone",
@@ -797,7 +1414,7 @@
       "constraints": {
         "notEmpty": true
       },
-      "group": "Input"
+      "group": "resilience"
     },
     {
       "id": "status_optional",
@@ -909,7 +1526,9 @@
           "add-in-role",
           "get-content-role",
           "delete-in-role",
-          "delete-role"
+          "delete-role",
+          "create-authorization",
+          "delete-authorization"
         ]
       },
       "id": "dateOperation_optional",
@@ -945,6 +1564,54 @@
       "feel": "optional",
       "binding": {
         "source": "\u003d result.dateOperation",
+        "type": "zeebe:output"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "Output"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
+          "delete-user"
+        ]
+      },
+      "id": "userNameDeleted_optional",
+      "label": "Saved User Name Deleted?",
+      "description": "The username of the user deleted",
+      "value": "false",
+      "binding": {
+        "name": "userNameDeleted_optional",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Yes",
+          "value": "true"
+        },
+        {
+          "name": "No",
+          "value": "false"
+        }
+      ],
+      "group": "Output"
+    },
+    {
+      "condition": {
+        "property": "userNameDeleted_optional",
+        "equals": "true"
+      },
+      "id": "userNameDeleted",
+      "label": "User Name Deleted",
+      "description": "The username of the user deleted",
+      "value": "",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "source": "\u003d result.userNameDeleted",
         "type": "zeebe:output"
       },
       "constraints": {
@@ -1251,6 +1918,54 @@
       "condition": {
         "property": "identityFunction",
         "oneOf": [
+          "delete-group"
+        ]
+      },
+      "id": "groupIdDeleted_optional",
+      "label": "Saved Group Id Deleted?",
+      "description": "The groupId of the group deleted",
+      "value": "false",
+      "binding": {
+        "name": "groupIdDeleted_optional",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Yes",
+          "value": "true"
+        },
+        {
+          "name": "No",
+          "value": "false"
+        }
+      ],
+      "group": "Output"
+    },
+    {
+      "condition": {
+        "property": "groupIdDeleted_optional",
+        "equals": "true"
+      },
+      "id": "groupIdDeleted",
+      "label": "Group Id Deleted",
+      "description": "The groupId of the group deleted",
+      "value": "",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "source": "\u003d result.groupIdDeleted",
+        "type": "zeebe:output"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "Output"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
           "create-role",
           "update-role",
           "add-in-role",
@@ -1291,6 +2006,198 @@
       "feel": "optional",
       "binding": {
         "source": "\u003d result.role",
+        "type": "zeebe:output"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "Output"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
+          "delete-role"
+        ]
+      },
+      "id": "roleIdDeleted_optional",
+      "label": "Saved Role Id Deleted?",
+      "description": "The roleId of the role deleted",
+      "value": "false",
+      "binding": {
+        "name": "roleIdDeleted_optional",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Yes",
+          "value": "true"
+        },
+        {
+          "name": "No",
+          "value": "false"
+        }
+      ],
+      "group": "Output"
+    },
+    {
+      "condition": {
+        "property": "roleIdDeleted_optional",
+        "equals": "true"
+      },
+      "id": "roleIdDeleted",
+      "label": "Role Id Deleted",
+      "description": "The roleId of the role deleted",
+      "value": "",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "source": "\u003d result.roleIdDeleted",
+        "type": "zeebe:output"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "Output"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
+          "create-authorization"
+        ]
+      },
+      "id": "authorizationKey_optional",
+      "label": "Saved Authorization Key?",
+      "description": "The authorizationKey of the authorization created",
+      "value": "false",
+      "binding": {
+        "name": "authorizationKey_optional",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Yes",
+          "value": "true"
+        },
+        {
+          "name": "No",
+          "value": "false"
+        }
+      ],
+      "group": "Output"
+    },
+    {
+      "condition": {
+        "property": "authorizationKey_optional",
+        "equals": "true"
+      },
+      "id": "authorizationKey",
+      "label": "Authorization Key",
+      "description": "The authorizationKey of the authorization created",
+      "value": "",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "source": "\u003d result.authorizationKey",
+        "type": "zeebe:output"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "Output"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
+          "search-authorization"
+        ]
+      },
+      "id": "listAuthorizations_optional",
+      "label": "Saved List Authorizations?",
+      "description": "List of authorizations found by the search (raw Camunda 8 client objects, not maps)",
+      "value": "false",
+      "binding": {
+        "name": "listAuthorizations_optional",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Yes",
+          "value": "true"
+        },
+        {
+          "name": "No",
+          "value": "false"
+        }
+      ],
+      "group": "Output"
+    },
+    {
+      "condition": {
+        "property": "listAuthorizations_optional",
+        "equals": "true"
+      },
+      "id": "listAuthorizations",
+      "label": "List Authorizations",
+      "description": "List of authorizations found by the search (raw Camunda 8 client objects, not maps)",
+      "value": "",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "source": "\u003d result.listAuthorizations",
+        "type": "zeebe:output"
+      },
+      "constraints": {
+        "notEmpty": true
+      },
+      "group": "Output"
+    },
+    {
+      "condition": {
+        "property": "identityFunction",
+        "oneOf": [
+          "delete-authorization"
+        ]
+      },
+      "id": "authorizationKeyDeleted_optional",
+      "label": "Saved Authorization Key Deleted?",
+      "description": "The authorizationKey of the authorization deleted",
+      "value": "false",
+      "binding": {
+        "name": "authorizationKeyDeleted_optional",
+        "type": "zeebe:input"
+      },
+      "type": "Dropdown",
+      "choices": [
+        {
+          "name": "Yes",
+          "value": "true"
+        },
+        {
+          "name": "No",
+          "value": "false"
+        }
+      ],
+      "group": "Output"
+    },
+    {
+      "condition": {
+        "property": "authorizationKeyDeleted_optional",
+        "equals": "true"
+      },
+      "id": "authorizationKeyDeleted",
+      "label": "Authorization Key Deleted",
+      "description": "The authorizationKey of the authorization deleted",
+      "value": "",
+      "type": "String",
+      "feel": "optional",
+      "binding": {
+        "source": "\u003d result.authorizationKeyDeleted",
         "type": "zeebe:output"
       },
       "constraints": {

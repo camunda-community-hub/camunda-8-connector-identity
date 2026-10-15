@@ -33,15 +33,17 @@ public class UpdateGroupFunction implements IdentitySubFunction {
         String groupId = identityInput.getGroupId();
         String groupName = identityInput.getGroupName();
         String description = identityInput.getGroupDescription();
-        logger.info("--- UpdateGroup : START GroupId[{}] name[{}]", groupId, groupName);
+        Long waitExport = identityInput.getWaitExport();
+        logger.info("--- UpdateGroup : START GroupId[{}] name[{}] waitExport[{}]", groupId, groupName, waitExport);
         try {
             camundaClient.newUpdateGroupCommand(groupId)
                     .name(groupName)
                     .description(description)
                     .execute();
 
-            IdentityOutput identityOutput = new IdentityOutput();
+            IdentityFunction.waitExport(waitExport, logger, "UpdateGroup groupId[" + groupId + "]");
 
+            IdentityOutput identityOutput = new IdentityOutput();
             identityOutput.group = new GroupImpl(groupId, groupName, description);
 
             identityOutput.status = IdentityOutput.STATUS_SUCCESS;
@@ -60,31 +62,33 @@ public class UpdateGroupFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getInputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityInput.INPUT_GROUP_ID, //
-                        "Group Id", //
+                        IdentityInput.INPUT_GROUP_ID_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.REQUIRED, //
-                        IdentityInput.INPUT_GROUP_ID_EXPLANATION),//
+                        IdentityInput.INPUT_GROUP_ID_EXPLANATION).setGroup(IdentitySubFunction.GROUP_GROUP),//
 
                 RunnerParameter.getInstance(IdentityInput.INPUT_GROUP_NAME, //
-                        "Group Name", //
+                        IdentityInput.INPUT_GROUP_NAME_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.REQUIRED, //
-                        IdentityInput.INPUT_GROUP_NAME_EXPLANATION),
+                        IdentityInput.INPUT_GROUP_NAME_EXPLANATION).setGroup(IdentitySubFunction.GROUP_GROUP),
                 RunnerParameter.getInstance(IdentityInput.INPUT_GROUP_DESCRIPTION, //
-                        "Group Description", //
+                        IdentityInput.INPUT_GROUP_DESCRIPTION_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.REQUIRED, //
-                        IdentityInput.INPUT_GROUP_DESCRIPTION_EXPLANATION)
+                        IdentityInput.INPUT_GROUP_DESCRIPTION_EXPLANATION).setGroup(IdentitySubFunction.GROUP_GROUP),
+
+                IdentityInput.getWaitExportParameter()
         );//
     }
 
     @Override
     public List<RunnerParameter> getOutputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityOutput.OUTPUT_STATUS, //
-                        "Status", //
+                        IdentityOutput.OUTPUT_STATUS_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
@@ -98,7 +102,7 @@ public class UpdateGroupFunction implements IdentitySubFunction {
                         IdentityOutput.OUTPUT_GROUP_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_DATE_OPERATION, //
-                        "Date of operation", //
+                        IdentityOutput.OUTPUT_DATE_OPERATION_LABEL, //
                         Date.class, //
                         null, //
                         RunnerParameter.Level.OPTIONAL, //

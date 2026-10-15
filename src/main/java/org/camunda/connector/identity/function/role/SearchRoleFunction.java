@@ -61,28 +61,28 @@ public class SearchRoleFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getInputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityInput.INPUT_ROLE_NAME_SEARCH, //
-                        "Role Name filter", //
+                        IdentityInput.INPUT_ROLE_NAME_SEARCH_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.REQUIRED, //
-                        IdentityInput.INPUT_ROLE_NAME_SEARCH_EXPLANATION),//
+                        IdentityInput.INPUT_ROLE_NAME_SEARCH_EXPLANATION).setGroup(IdentitySubFunction.ROLE_GROUP),//
 
-                IdentityInput.pageNumberParameter, //
+                IdentityInput.getPageNumberParameter().setGroup(IdentitySubFunction.ROLE_GROUP), //
 
-                IdentityInput.pageSizeParameter);//
+                IdentityInput.getPageSizeParameter().setGroup(IdentitySubFunction.ROLE_GROUP));//
     }
 
     @Override
     public List<RunnerParameter> getOutputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityOutput.OUTPUT_STATUS, //
-                        "Status", //
+                        IdentityOutput.OUTPUT_STATUS_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_STATUS_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_LIST_ROLES, //
-                        "List Roles", //
+                        IdentityOutput.OUTPUT_LIST_ROLES_LABEL, //
                         List.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //

@@ -136,44 +136,44 @@ public class SearchUserFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getInputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityInput.INPUT_SEARCH_BY_USER_NAME, //
-                                "Search by User Name", //
+                                IdentityInput.INPUT_SEARCH_BY_USER_NAME_LABEL, //
                                 String.class, //
                                 "", //
                                 RunnerParameter.Level.OPTIONAL, //
                                 IdentityInput.INPUT_SEARCH_BY_USER_NAME_EXPLANATION)
-                        .setVisibleInTemplate(),//
+                        .setVisibleInTemplate().setGroup(IdentitySubFunction.USER_GROUP),//
 
                 RunnerParameter.getInstance(IdentityInput.INPUT_SEARCH_BY_USER_DISPLAY_NAME, //
-                                "Search by Name", //
+                                IdentityInput.INPUT_SEARCH_BY_USER_DISPLAY_NAME_LABEL, //
                                 String.class, //
                                 "", //
                                 RunnerParameter.Level.OPTIONAL, //
                                 IdentityInput.INPUT_SEARCH_BY_USER_DISPLAY_NAME_EXPLANATION)
-                        .setVisibleInTemplate(),//
+                        .setVisibleInTemplate().setGroup(IdentitySubFunction.USER_GROUP),//
 
                 RunnerParameter.getInstance(IdentityInput.INPUT_SEARCH_BY_USER_EMAIL, //
-                                "Search by Email", //
+                                IdentityInput.INPUT_SEARCH_BY_USER_EMAIL_LABEL, //
                                 String.class, //
                                 "", //
                                 RunnerParameter.Level.OPTIONAL, //
                                 IdentityInput.INPUT_SEARCH_BY_USER_EMAIL_EXPLANATION)
-                        .setVisibleInTemplate(),//
+                        .setVisibleInTemplate().setGroup(IdentitySubFunction.USER_GROUP),//
 
                 RunnerParameter.getInstance(IdentityInput.INPUT_SEARCH_BY_GROUP_ID, //
-                                "Search by Group Id", //
+                                IdentityInput.INPUT_SEARCH_BY_GROUP_ID_LABEL, //
                                 String.class, //
                                 "", //
                                 RunnerParameter.Level.OPTIONAL, //
                                 IdentityInput.INPUT_SEARCH_BY_GROUP_ID_EXPLANATION)
-                        .setVisibleInTemplate(),//
+                        .setVisibleInTemplate().setGroup(IdentitySubFunction.USER_GROUP),//
 
                 RunnerParameter.getInstance(IdentityInput.INPUT_SEARCH_BY_ROLE_ID, //
-                                "Search by Role Id", //
+                                IdentityInput.INPUT_SEARCH_BY_ROLE_ID_LABEL, //
                                 String.class, //
                                 "", //
                                 RunnerParameter.Level.OPTIONAL, //
                                 IdentityInput.INPUT_SEARCH_BY_ROLE_ID_EXPLANATION)
-                        .setVisibleInTemplate()
+                        .setVisibleInTemplate().setGroup(IdentitySubFunction.USER_GROUP)
         );//
 
     }
@@ -181,21 +181,21 @@ public class SearchUserFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getOutputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityOutput.OUTPUT_STATUS, //
-                        "Status", //
+                        IdentityOutput.OUTPUT_STATUS_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_STATUS_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_LIST_USERS, //
-                        "List Users", //
+                        IdentityOutput.OUTPUT_LIST_USERS_LABEL, //
                         List.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_LIST_USERS_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_DATE_OPERATION, //
-                        "Date of operation", //
+                        IdentityOutput.OUTPUT_DATE_OPERATION_LABEL, //
                         Date.class, //
                         null, //
                         RunnerParameter.Level.OPTIONAL, //

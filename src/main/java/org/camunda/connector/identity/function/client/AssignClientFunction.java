@@ -40,8 +40,9 @@ public class AssignClientFunction implements IdentitySubFunction {
         String groupId = identityInput.getGroupId();
         String tenantId = identityInput.getTenantId();
         boolean ignoreIfAlreadyDone = Boolean.TRUE.equals(identityInput.getIgnoreIfAlreadyDone());
-        logger.info("--- AssignClient : START ClientId[{}] roleId[{}] groupId[{}] tenantId[{}] ignoreIfAlreadyDone[{}]",
-                clientId, roleId, groupId, tenantId, ignoreIfAlreadyDone);
+        Long waitExport = identityInput.getWaitExport();
+        logger.info("--- AssignClient : START ClientId[{}] roleId[{}] groupId[{}] tenantId[{}] ignoreIfAlreadyDone[{}] waitExport[{}]",
+                clientId, roleId, groupId, tenantId, ignoreIfAlreadyDone, waitExport);
         try {
             if (containsInformation(roleId))
                 assignRoleToClient(camundaClient, clientId, roleId, ignoreIfAlreadyDone);
@@ -49,6 +50,8 @@ public class AssignClientFunction implements IdentitySubFunction {
                 assignClientToGroup(camundaClient, clientId, groupId, ignoreIfAlreadyDone);
             if (containsInformation(tenantId))
                 assignClientToTenant(camundaClient, clientId, tenantId, ignoreIfAlreadyDone);
+
+            IdentityFunction.waitExport(waitExport, logger, "AssignClient clientId[" + clientId + "]");
 
             IdentityOutput identityOutput = new IdentityOutput();
             identityOutput.status = IdentityOutput.STATUS_SUCCESS;
@@ -111,32 +114,34 @@ public class AssignClientFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getInputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityInput.INPUT_CLIENT_ID, //
-                        "Client Id", //
+                        IdentityInput.INPUT_CLIENT_ID_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.REQUIRED, //
-                        IdentityInput.INPUT_CLIENT_ID_EXPLANATION),//
+                        IdentityInput.INPUT_CLIENT_ID_EXPLANATION).setGroup(IdentitySubFunction.CLIENT_GROUP),//
 
                 RunnerParameter.getInstance(IdentityInput.INPUT_ROLE_ID, //
-                        "Role Id", //
+                        IdentityInput.INPUT_ROLE_ID_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
-                        IdentityInput.INPUT_ROLE_ID_EXPLANATION),//
+                        IdentityInput.INPUT_ROLE_ID_EXPLANATION).setGroup(IdentitySubFunction.CLIENT_GROUP),//
 
                 RunnerParameter.getInstance(IdentityInput.INPUT_GROUP_ID, //
-                        "Group Id", //
+                        IdentityInput.INPUT_GROUP_ID_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
-                        IdentityInput.INPUT_GROUP_ID_EXPLANATION),//
+                        IdentityInput.INPUT_GROUP_ID_EXPLANATION).setGroup(IdentitySubFunction.CLIENT_GROUP),//
 
                 RunnerParameter.getInstance(IdentityInput.INPUT_TENANT_ID, //
-                        "Tenant Id", //
+                        IdentityInput.INPUT_TENANT_ID_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
-                        IdentityInput.INPUT_TENANT_ID_EXPLANATION),//
+                        IdentityInput.INPUT_TENANT_ID_EXPLANATION).setGroup(IdentitySubFunction.CLIENT_GROUP),//
+
+                IdentityInput.getWaitExportParameter(), //
 
                 IdentityInput.getIgnoreIfAlreadyDoneParameter());//
     }
@@ -144,7 +149,7 @@ public class AssignClientFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getOutputsParameter() {
         return List.of(RunnerParameter.getInstance(IdentityOutput.OUTPUT_STATUS, //
-                "Status", //
+                IdentityOutput.OUTPUT_STATUS_LABEL, //
                 String.class, //
                 "", //
                 RunnerParameter.Level.OPTIONAL, //

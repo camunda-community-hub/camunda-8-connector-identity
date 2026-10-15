@@ -47,6 +47,12 @@ On Client:
 * Assign a client to a role, a group and/or a tenant
 * Unassign a client from a role, a group and/or a tenant
 
+On Authorization:
+
+* Create an authorization, granting one or more permissions on a resource to a user, a role or a group
+* Search authorizations, filtered by owner and/or resource
+* Delete an authorization from its authorizationKey
+
 > The `*`/`?` wildcard (`like`) search used by "Search users", "Search groups" and "Search roles"
 > is only understood by a Camunda 8.10+ broker. Against an older broker (8.9 and before) it fails
 > with `400 Request property [filter.name] cannot be parsed`.
@@ -71,7 +77,7 @@ This parameter describes the function:
 
 | Name             | Description                                                                                                                                                                                                                                                                                      | Class            | Default | Level    |
 |------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------|---------|----------|
-| identityFunction | Function: `create-user`, `search-users`, `update-user`, `delete-user`, `create-group`, `add-in-group`, `get-content-group`, `search-group`, `delete-in-group`, `delete-group`, `create-role`, `add-in-role`, `get-content-role`, `search-role`, `delete-in-role`, `delete-role`, `assign-client`, `unassign-client` | java.lang.String |         | REQUIRED |
+| identityFunction | Function: `create-user`, `search-users`, `update-user`, `delete-user`, `create-group`, `add-in-group`, `get-content-group`, `search-group`, `delete-in-group`, `delete-group`, `create-role`, `add-in-role`, `get-content-role`, `search-role`, `delete-in-role`, `delete-role`, `assign-client`, `unassign-client`, `create-authorization`, `search-authorization`, `delete-authorization` | java.lang.String |         | REQUIRED |
 
 # Create user
 
@@ -240,12 +246,19 @@ the function fails with `GROUP_NOT_FOUND` before any member is added:
 ={users: ["walter.bates"], roles: ["supervisor-role"], client: [], mappingRule: []}
 ```
 
+> Camunda 8's Search/Get APIs are eventually consistent: a `groupId` created moments earlier (e.g.
+> by a `create-group` task earlier in the same process instance) might not be visible yet. The
+> `groupId` lookup automatically retries a few times with a short delay before failing with
+> `GROUP_NOT_FOUND`. `waitExport` adds an extra, explicit wait before that lookup if you need more
+> margin than the automatic retry gives you.
+
 ## Inputs
 
 | Name                | Description                                                                                                   | Class             | Default | Level    |
 |---------------------|--------------------------------------------------------------------------------------------------------------------|-------------------|---------|----------|
 | groupId             | The group to add the members to                                                                                      | java.lang.String  |         | REQUIRED |
 | groupMembers        | `{users: [...], roles: [...], client: [...], mappingRule: [...]}` - usernames/role ids/client ids/mapping rule ids to add | `GroupMembers`    |         | REQUIRED |
+| waitExport          | Wait for Identity to export the artefact created, in millisecond - if > 0, the function sleeps this long before looking up `groupId`  | java.lang.Long    | 0       | OPTIONAL |
 | ignoreIfAlreadyDone | If true (default), do not throw a BPMN error when a member is already in the group - skips it instead               | java.lang.Boolean | true    | REQUIRED |
 
 ## Output
@@ -444,12 +457,19 @@ function fails with `ROLE_NOT_FOUND` before any member is added:
 ={users: ["walter.bates"], groups: ["supervisor"], client: [], mappingRule: []}
 ```
 
+> Camunda 8's Search/Get APIs are eventually consistent: a `roleId` created moments earlier (e.g.
+> by a `create-role` task earlier in the same process instance) might not be visible yet. The
+> `roleId` lookup automatically retries a few times with a short delay before failing with
+> `ROLE_NOT_FOUND`. `waitExport` adds an extra, explicit wait before that lookup if you need more
+> margin than the automatic retry gives you.
+
 ## Inputs
 
 | Name                | Description                                                                                                       | Class             | Default | Level    |
 |---------------------|-------------------------------------------------------------------------------------------------------------------------|-------------------|---------|----------|
 | roleId              | The role to add the members to                                                                                           | java.lang.String  |         | REQUIRED |
 | roleMembers         | `{users: [...], groups: [...], client: [...], mappingRule: [...]}` - usernames/group ids/client ids/mapping rule ids to add | `RoleMembers`     |         | REQUIRED |
+| waitExport          | Wait for Identity to export the artefact created, in millisecond - if > 0, the function sleeps this long before looking up `roleId` | java.lang.Long    | 0       | OPTIONAL |
 | ignoreIfAlreadyDone | If true (default), do not throw a BPMN error when a member is already in the role - skips it instead                    | java.lang.Boolean | true    | REQUIRED |
 
 ## Output
@@ -668,6 +688,108 @@ one call - each of `roleId`/`groupId`/`tenantId` that is set triggers its own un
 | IDENTITY_CONNECTION | Error arrived during the connection to the Camunda 8 cluster       |
 | UNKNOWN_FUNCTION    | The function is unknown. There is a limited number of operations   |
 | UNASSIGN_CLIENT     | Unassigning the client failed                                       |
+
+# Create authorization
+
+`identityFunction = create-authorization`. Grants one or more permissions on a resource to a user,
+a role or a group. Calls `CamundaClient.newCreateAuthorizationCommand().ownerId(...).ownerType(...)
+.resourceId(...).resourceType(...).permissionTypes(...)`. See
+[Authorizations](https://docs.camunda.io/docs/components/concepts/access-control/authorizations/)
+for the underlying Camunda 8 concept.
+
+Each entry in `authorizationPermission` is validated against the Camunda 8 `PermissionType` enum
+*before* the command is sent - an unrecognized value throws `UNKNOWN_PERMISSION` without creating
+anything.
+
+## Inputs
+
+| Name                     | Description                                                                                                                                                                                                                                                                                            | Class            | Default | Level    |
+|--------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------|---------|----------|
+| authorizationOwnerType   | Type of the authorization owner. Accepted values: `USER`, `ROLE`, `GROUP`                                                                                                                                                                                                                              | java.lang.String | | REQUIRED |
+| authorizationOwner       | Id of the owner: a username, a roleId or a groupId, depending on `authorizationOwnerType`                                                                                                                                                                                                              | java.lang.String | | REQUIRED |
+| authorizationResourceType | Type of resource to grant access to. Accepted values: `AUDIT_LOG`, `AUTHORIZATION`, `BACKUP`, `BATCH`, `CLUSTER_VARIABLE`, `COMPONENT`, `DECISION_DEFINITION`, `DECISION_REQUIREMENTS_DEFINITION`, `DOCUMENT`, `EXPORTER`, `EXPRESSION`, `GLOBAL_LISTENER`, `GROUP`, `MAPPING_RULE`, `MESSAGE`, `PROCESS_DEFINITION`, `RESOURCE`, `ROLE`, `SECRET`, `SYSTEM`, `TENANT`, `USER`, `USER_TASK`. For `COMPONENT`, the resourceId is one of `*`/`operate`/`tasklist`/`admin` | java.lang.String | | REQUIRED |
+| authorizationResourceId | Id of the resource, e.g. a process definition id, or `*`/`operate`/`tasklist`/`admin` when `authorizationResourceType` is `COMPONENT`                                                                                                                                                                  | java.lang.String | | REQUIRED |
+| authorizationPermission | One or more permissions to grant: either a list of strings (e.g. `["CLAIM_USER_TASK", "COMPLETE_USER_TASK"]`) or a single comma-separated string (e.g. `"CLAIM_USER_TASK,COMPLETE_USER_TASK"`). Full accepted value list documented on the input itself (same values as the Camunda 8 `PermissionType` enum). An unrecognized value throws `UNKNOWN_PERMISSION` | java.lang.Object | | REQUIRED |
+| ignoreIfAlreadyDone | If true (default), do not throw a BPMN error when the same authorization already exists - returns status `ALREADY_EXIST` instead, with the existing authorization's `authorizationKey` | java.lang.Boolean | true | REQUIRED |
+
+## Output
+
+| Name             | Description                                                                 | Class            | Level    |
+|------------------|----------------------------------------------------------------------------------|------------------|----------|
+| status           | Status of operation (`CREATED`, or `ALREADY_EXIST` if `ignoreIfAlreadyDone`)     | java.lang.String | OPTIONAL |
+| authorizationKey | The authorizationKey of the authorization created (or of the pre-existing one)    | java.lang.Long   | OPTIONAL |
+| dateOperation    | Date when the operation is performed                                              | java.util.Date   | OPTIONAL |
+
+## BPMN Errors
+
+| Name                | Explanation                                                       |
+|---------------------|--------------------------------------------------------------------|
+| IDENTITY_CONNECTION | Error arrived during the connection to the Camunda 8 cluster       |
+| UNKNOWN_FUNCTION    | The function is unknown. There is a limited number of operations   |
+| UNKNOWN_PERMISSION  | One of the given permissions is not a valid Camunda 8 permission    |
+| CREATE_AUTHORIZATION | Create authorization failed                                       |
+
+# Search authorization
+
+`identityFunction = search-authorization`. Searches authorizations, filtered by any combination of
+owner id, owner type, resource type(s), resource id(s) and resource property name(s) - every filter
+is optional. Calls `CamundaClient.newAuthorizationSearchRequest()`.
+
+Unlike every other filter here, `authorizationSearchResourceType` accepts a list: the Camunda 8
+client's `AuthorizationFilter` only accepts one `resourceType` per search, so when several are
+given, one search is issued per resource type and the results are merged.
+
+## Inputs
+
+| Name                                     | Description                                                                                                                                                          | Class            | Default | Level    |
+|-------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------|---------|----------|
+| authorizationSearchOwnerId                 | Filter by the owner id (exact match)                                                                                                                                     | java.lang.String | | OPTIONAL |
+| authorizationSearchOwnerType               | Filter by the owner type. Accepted values: `USER`, `ROLE`, `GROUP`                                                                                                       | java.lang.String | | OPTIONAL |
+| authorizationSearchResourceType            | Filter by resource type - a list of strings, or a single comma-separated string (e.g. `["PROCESS_DEFINITION", "DECISION_DEFINITION"]` or `"PROCESS_DEFINITION,DECISION_DEFINITION"`). Same accepted values as `authorizationResourceType` on create-authorization | java.lang.Object | | OPTIONAL |
+| authorizationSearchResourceId              | Filter by resource id(s) - a list of strings, or a single comma-separated string                                                                                         | java.lang.Object | | OPTIONAL |
+| authorizationSearchResourcePropertyName    | Filter by resource property name(s) - a list of strings, or a single comma-separated string                                                                              | java.lang.Object | | OPTIONAL |
+
+## Output
+
+| Name               | Description                                                                    | Class          | Level    |
+|--------------------|--------------------------------------------------------------------------------|----------------|----------|
+| status             | Status of operation                                                             | java.lang.String | OPTIONAL |
+| listAuthorizations | List of authorizations found by the search (real Camunda 8 client objects, not maps) | java.util.List | OPTIONAL |
+
+## BPMN Errors
+
+| Name                  | Explanation                                                       |
+|-----------------------|--------------------------------------------------------------------|
+| IDENTITY_CONNECTION   | Error arrived during the connection to the Camunda 8 cluster       |
+| UNKNOWN_FUNCTION      | The function is unknown. There is a limited number of operations   |
+| SEARCH_AUTHORIZATION  | During search authorization(s) in Camunda 8 Identity                |
+
+# Delete authorization
+
+`identityFunction = delete-authorization`. Deletes an authorization from its `authorizationKey`
+(the key returned by create-authorization). Calls
+`CamundaClient.newDeleteAuthorizationCommand(authorizationKey)`.
+
+## Inputs
+
+| Name             | Description                                                                                   | Class            | Default | Level    |
+|------------------|-------------------------------------------------------------------------------------------------|------------------|---------|----------|
+| authorizationKey | The authorizationKey of the authorization to delete, as returned by create-authorization in the authorizationKey output | java.lang.String | | REQUIRED |
+
+## Output
+
+| Name          | Description                           | Class            | Level    |
+|---------------|------------------------------------------|------------------|----------|
+| status        | Status of operation                      | java.lang.String | OPTIONAL |
+| dateOperation | Date when the operation is performed     | java.util.Date   | OPTIONAL |
+
+## BPMN Errors
+
+| Name                 | Explanation                                                       |
+|----------------------|--------------------------------------------------------------------|
+| IDENTITY_CONNECTION  | Error arrived during the connection to the Camunda 8 cluster       |
+| UNKNOWN_FUNCTION     | The function is unknown. There is a limited number of operations   |
+| DELETE_AUTHORIZATION | During delete authorization in Camunda 8 Identity                   |
 
 # Build
 

@@ -78,25 +78,27 @@ public class CreateRoleFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getInputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityInput.INPUT_ROLE_ID, //
-                        "Role Id", //
+                        IdentityInput.INPUT_ROLE_ID_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.REQUIRED, //
-                        IdentityInput.INPUT_ROLE_ID_EXPLANATION),//
+                        IdentityInput.INPUT_ROLE_ID_EXPLANATION).setGroup(IdentitySubFunction.ROLE_GROUP),//
 
                 RunnerParameter.getInstance(IdentityInput.INPUT_ROLE_NAME, //
-                        "Role Name", //
+                        IdentityInput.INPUT_ROLE_NAME_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
-                        IdentityInput.INPUT_ROLE_NAME_EXPLANATION),//
+                        IdentityInput.INPUT_ROLE_NAME_EXPLANATION).setGroup(IdentitySubFunction.ROLE_GROUP),//
 
                 RunnerParameter.getInstance(IdentityInput.INPUT_ROLE_DESCRIPTION, //
-                        "Role Description", //
+                        IdentityInput.INPUT_ROLE_DESCRIPTION_LABEL, //
                         String.class, //
                         "", //
-                        RunnerParameter.Level.OPTIONAL, //
-                        IdentityInput.INPUT_ROLE_DESCRIPTION_EXPLANATION),//
+                        RunnerParameter.Level.REQUIRED, //
+                        IdentityInput.INPUT_ROLE_DESCRIPTION_EXPLANATION).setGroup(IdentitySubFunction.ROLE_GROUP),//
+
+                IdentityInput.getWaitExportParameter(), //
 
                 IdentityInput.getIgnoreIfAlreadyDoneParameter());//
     }
@@ -104,21 +106,21 @@ public class CreateRoleFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getOutputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityOutput.OUTPUT_STATUS, //
-                        "Status", //
+                        IdentityOutput.OUTPUT_STATUS_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_STATUS_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_ROLE, //
-                        "Role", //
+                        IdentityOutput.OUTPUT_ROLE_LABEL, //
                         Role.class, //
                         null, //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_ROLE_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_DATE_OPERATION, //
-                        "Date of operation", //
+                        IdentityOutput.OUTPUT_DATE_OPERATION_LABEL, //
                         Date.class, //
                         null, //
                         RunnerParameter.Level.OPTIONAL, //

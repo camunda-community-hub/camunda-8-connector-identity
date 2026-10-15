@@ -30,13 +30,17 @@ public class DeleteUserFunction implements IdentitySubFunction {
         long markerTime = System.currentTimeMillis();
         String userName = identityInput.getUserName();
         boolean ignoreIfAlreadyDone = Boolean.TRUE.equals(identityInput.getIgnoreIfAlreadyDone());
-        logger.info("--- DeleteUser : START UserName[{}] ignoreIfAlreadyDone[{}]", userName, ignoreIfAlreadyDone);
+        Long waitExport = identityInput.getWaitExport();
+        logger.info("--- DeleteUser : START UserName[{}] ignoreIfAlreadyDone[{}] waitExport[{}]", userName, ignoreIfAlreadyDone, waitExport);
         try {
             camundaClient.newDeleteUserCommand(userName).execute();
+
+            IdentityFunction.waitExport(waitExport, logger, "DeleteUser userName[" + userName + "]");
 
             IdentityOutput identityOutput = new IdentityOutput();
             identityOutput.status = IdentityOutput.STATUS_SUCCESS;
             identityOutput.dateOperation = new Date();
+            identityOutput.userNameDeleted = userName;
             logger.info("--- DeleteUser : END UserName[{}] status[{}] in {} ms",
                     userName,
                     identityOutput.status,
@@ -49,6 +53,7 @@ public class DeleteUserFunction implements IdentitySubFunction {
                 IdentityOutput identityOutput = new IdentityOutput();
                 identityOutput.status = IdentityOutput.STATUS_ALREADY_DELETED;
                 identityOutput.dateOperation = new Date();
+                identityOutput.userNameDeleted = userName;
                 logger.info("--- DeleteUser : END UserName[{}] already deleted, ignored, status[{}] in {} ms", userName,
                         identityOutput.status,
                         System.currentTimeMillis() - markerTime);
@@ -62,11 +67,13 @@ public class DeleteUserFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getInputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityInput.INPUT_USER_NAME, //
-                        "User Name", //
+                        IdentityInput.INPUT_USER_NAME_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.REQUIRED, //
-                        IdentityInput.INPUT_USER_NAME_EXPLANATION),//
+                        IdentityInput.INPUT_USER_NAME_EXPLANATION).setGroup(IdentitySubFunction.USER_GROUP),//
+
+                IdentityInput.getWaitExportParameter(), //
 
                 IdentityInput.getIgnoreIfAlreadyDoneParameter());//
 
@@ -75,18 +82,25 @@ public class DeleteUserFunction implements IdentitySubFunction {
     @Override
     public List<RunnerParameter> getOutputsParameter() {
         return Arrays.asList(RunnerParameter.getInstance(IdentityOutput.OUTPUT_STATUS, //
-                        "Status", //
+                        IdentityOutput.OUTPUT_STATUS_LABEL, //
                         String.class, //
                         "", //
                         RunnerParameter.Level.OPTIONAL, //
                         IdentityOutput.OUTPUT_STATUS_EXPLANATION), //
 
                 RunnerParameter.getInstance(IdentityOutput.OUTPUT_DATE_OPERATION, //
-                        "Date of operation", //
+                        IdentityOutput.OUTPUT_DATE_OPERATION_LABEL, //
                         Date.class, //
                         null, //
                         RunnerParameter.Level.OPTIONAL, //
-                        IdentityOutput.OUTPUT_DATE_OPERATION_EXPLANATION));
+                        IdentityOutput.OUTPUT_DATE_OPERATION_EXPLANATION), //
+
+                RunnerParameter.getInstance(IdentityOutput.OUTPUT_USER_NAME_DELETED, //
+                        IdentityOutput.OUTPUT_USER_NAME_DELETED_LABEL, //
+                        String.class, //
+                        "", //
+                        RunnerParameter.Level.OPTIONAL, //
+                        IdentityOutput.OUTPUT_USER_NAME_DELETED_EXPLANATION));
     }
 
     @Override
