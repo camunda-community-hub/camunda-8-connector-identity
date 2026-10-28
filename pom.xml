@@ -6,7 +6,7 @@
   <!-- 1.0.0 First release -->
   <!-- 1.0.1 Move env to secrets.NEXUS_USR, secrets.NEXUS_PSW -->
   <!-- 1.1.0 Add Authorization API, waitExport, groups in element-template -->
-  <version>1.1.0</version>
+  <version>1.1.1</version>
 
   <packaging>jar</packaging>
 
